@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.MainPage"
+             BackgroundColor="#1B305E"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid RowDefinitions="*, Auto" Padding="30">
+
+        <VerticalStackLayout Grid.Row="0" 
+                             VerticalOptions="Center" 
+                             Spacing="15">
+
+            <Image Source="kampusbag_logo_white.png" 
+                   HeightRequest="160" 
+                   HorizontalOptions="Center" />
+
+            <Label Text="KampusBag" 
+                   FontSize="42" 
+                   FontAttributes="Bold" 
+                   TextColor="White" 
+                   HorizontalOptions="Center" />
+
+            <Label Text="Üniversitenin Güvenli İletişim Ağı" 
+                   FontSize="16" 
+                   TextColor="#D1D1D1" 
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout Grid.Row="1" 
+                             Spacing="15" 
+                             Margin="0,0,0,40">
+
+            <Button Text="Giriş Yap" 
+                    BackgroundColor="White" 
+                    TextColor="#1B305E" 
+                    CornerRadius="25" 
+                    HeightRequest="55" 
+                    FontAttributes="Bold"
+                    Clicked="OnLoginClicked" />
+
+            <Button Text="Kayıt Ol" 
+                    BackgroundColor="Transparent" 
+                    TextColor="White" 
+                    BorderColor="White" 
+                    BorderWidth="2"
+                    CornerRadius="25" 
+                    HeightRequest="55" 
+                    FontAttributes="Bold"
+                    Clicked="OnRegisterClicked" />
+
+            <Label Text="v1.0.0 Beta" 
+                   FontSize="10" 
+                   TextColor="#80FFFFFF" 
+                   HorizontalOptions="Center" 
+                   Margin="0,10,0,0" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

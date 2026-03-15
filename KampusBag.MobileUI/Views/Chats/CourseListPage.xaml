@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Chats.CourseListPage"
+             Title="Derslerim"
+             BackgroundColor="#F0F2F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+
+            <Label Text="Aktif Derslerin" 
+                   FontSize="24" 
+                   FontAttributes="Bold" 
+                   TextColor="#1B305E" 
+                   Margin="5,0,0,10" />
+
+            <FlexLayout x:Name="CoursesLayout" 
+                        Wrap="Wrap" 
+                        JustifyContent="SpaceBetween" 
+                        Direction="Row">
+
+                <Frame WidthRequest="160" 
+                       HeightRequest="180" 
+                       CornerRadius="15" 
+                       Padding="15" 
+                       Margin="0,0,0,15"
+                       BackgroundColor="White"
+                       BorderColor="#E0E0E0">
+
+                    <VerticalStackLayout Spacing="10" VerticalOptions="Center">
+                        <BoxView Color="#1B305E" HeightRequest="4" WidthRequest="40" HorizontalOptions="Start" />
+
+                        <Label Text="Nesne Tabanlı Programlama" 
+                               FontSize="16" 
+                               FontAttributes="Bold" 
+                               MaxLines="2" 
+                               TextColor="Black" />
+
+                        <Label Text="Dr. Öğr. Üyesi ..." 
+                               FontSize="12" 
+                               TextColor="Gray" />
+
+                        <Button Text="Sohbete Git" 
+                                Clicked="OnCourseClicked"
+                                FontSize="10"
+                                BackgroundColor="#F5F5F5"
+                                TextColor="#1B305E"
+                                HeightRequest="35"
+                                CornerRadius="8" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Frame WidthRequest="160" 
+                       HeightRequest="180" 
+                       CornerRadius="15" 
+                       Padding="15" 
+                       Margin="0,0,0,15"
+                       BackgroundColor="White"
+                       BorderColor="#E0E0E0">
+                    <VerticalStackLayout Spacing="10" VerticalOptions="Center">
+                        <BoxView Color="#D32F2F" HeightRequest="4" WidthRequest="40" HorizontalOptions="Start" />
+                        <Label Text="Veri Yapıları ve Algoritmalar" FontSize="16" FontAttributes="Bold" MaxLines="2" TextColor="Black" />
+                        <Label Text="Öğr. Gör. ..." FontSize="12" TextColor="Gray" />
+                        <Button Text="Sohbete Git" Clicked="OnCourseClicked" FontSize="10" BackgroundColor="#F5F5F5" TextColor="#1B305E" HeightRequest="35" CornerRadius="8" />
+                    </VerticalStackLayout>
+                </Frame>
+
+            </FlexLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

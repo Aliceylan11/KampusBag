@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="KampusBag.Application/KampusBag.Application.csproj" />
+  <Project Path="KampusBag.Core/KampusBag.Core.csproj" />
+  <Project Path="KampusBag.Infrastructure/KampusBag.Infrastructure.csproj" />
+  <Project Path="KampusBag.MobileUI/KampusBag.MobileUI.csproj" />
+  <Project Path="KampusBag.WebAPI/KampusBag.WebAPI.csproj" />
+</Solution>

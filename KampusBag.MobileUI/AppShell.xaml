@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="KampusBag.MobileUI.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:auth="clr-namespace:KampusBag.MobileUI.Views.Auth"
+    xmlns:chats="clr-namespace:KampusBag.MobileUI.Views.Chats"
+    xmlns:profile="clr-namespace:KampusBag.MobileUI.Views.Profile"
+    Shell.FlyoutBehavior="Disabled"
+    Title="KampusBag">
+
+    <Shell.Resources>
+        <ResourceDictionary>
+            <Style x:Key="BaseStyle" TargetType="Element">
+                <Setter Property="Shell.BackgroundColor" Value="#1B305E" />
+                <Setter Property="Shell.ForegroundColor" Value="White" />
+                <Setter Property="Shell.TitleColor" Value="White" />
+            </Style>
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <TabBar>
+        <Tab Title="Sohbetler">
+            <ShellContent ContentTemplate="{DataTemplate chats:ChatListPage}" />
+        </Tab>
+        <Tab Title="Derslerim">
+            <ShellContent ContentTemplate="{DataTemplate chats:CourseListPage}" />
+        </Tab>
+        <Tab Title="Profilim">
+            <ShellContent ContentTemplate="{DataTemplate profile:ProfilePage}" />
+        </Tab>
+    </TabBar>
+</Shell>

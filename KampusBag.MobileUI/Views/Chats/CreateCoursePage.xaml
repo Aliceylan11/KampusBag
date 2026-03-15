@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Chats.CreateCoursePage"
+             Title="Yeni Ders Grubu"
+             BackgroundColor="White">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20">
+
+            <VerticalStackLayout Spacing="5">
+                <Label Text="Grup Oluştur" 
+                       FontSize="26" 
+                       FontAttributes="Bold" 
+                       TextColor="#1B305E" />
+                <Label Text="Öğrencilerinizle güvenli iletişim için ders detaylarını girin." 
+                       FontSize="14" 
+                       TextColor="Gray" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="15" Margin="0,10">
+
+                <Label Text="Dersin Adı" FontAttributes="Bold" Margin="5,0"/>
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="CourseNameEntry" 
+                           Placeholder="Örn: Görsel Programlama II" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Label Text="Ders Katılım Kodu (6 Hane)" FontAttributes="Bold" Margin="5,0"/>
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="CourseCodeEntry" 
+                           Placeholder="Örn: GUM123" 
+                           MaxLength="6"
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Label Text="Öğretim Görevlisi" FontAttributes="Bold" Margin="5,0"/>
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="LecturerNameEntry" 
+                           Placeholder="Ad Soyad" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+            </VerticalStackLayout>
+
+            <Button Text="Grubu Aktif Et ve Başlat" 
+                    BackgroundColor="#1B305E" 
+                    TextColor="White" 
+                    CornerRadius="10" 
+                    HeightRequest="55" 
+                    FontAttributes="Bold"
+                    Clicked="OnCreateCourseClicked" />
+
+            <Label Text="* Bu grup oluşturulduğunda katılım kodu öğrencilerle paylaşılmaya hazır olacaktır." 
+                   FontSize="11" 
+                   TextColor="Gray" 
+                   HorizontalTextAlignment="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

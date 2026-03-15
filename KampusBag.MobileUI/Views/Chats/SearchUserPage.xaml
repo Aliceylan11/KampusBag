@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Chats.SearchUserPage"
+             Title="Kullanıcı Bul"
+             BackgroundColor="White">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <VerticalStackLayout Grid.Row="0" Padding="20" Spacing="10" BackgroundColor="#1B305E">
+            <Label Text="Öğrenci Numarası ile Ara" 
+                   TextColor="White" 
+                   FontSize="18" 
+                   FontAttributes="Bold" />
+            <Frame Padding="0" CornerRadius="10" HasShadow="False" BorderColor="Transparent">
+                <SearchBar x:Name="UserSearchBar"
+                           Placeholder="Örn: 220101..." 
+                           PlaceholderColor="Gray"
+                           TextColor="Black"
+                           BackgroundColor="White"
+                           SearchButtonPressed="OnSearchButtonPressed" />
+            </Frame>
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="0" x:Name="MessagesList" Margin="15">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                    <Label Text="🔍" FontSize="50" HorizontalOptions="Center" />
+                    <Label Text="Aramaya başlamak için numara girin." 
+                           TextColor="Gray" 
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" ColumnDefinitions="Auto, *, Auto">
+                        <Frame WidthRequest="50" HeightRequest="50" CornerRadius="25" Padding="0" BackgroundColor="#E0E0E0">
+                            <Label Text="👤" HorizontalOptions="Center" VerticalOptions="Center" FontSize="24" />
+                        </Frame>
+
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="15,0">
+                            <Label Text="Öğrenci Adı Soyadı" FontAttributes="Bold" TextColor="Black" />
+                            <Label Text="Bilgisayar Programcılığı" FontSize="12" TextColor="Gray" />
+                        </VerticalStackLayout>
+
+                        <Button Grid.Column="2" 
+                                Text="Mesaj At" 
+                                FontSize="12"
+                                BackgroundColor="#1B305E" 
+                                TextColor="White" 
+                                CornerRadius="20"
+                                HeightRequest="35"
+                                Clicked="OnStartChatClicked" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

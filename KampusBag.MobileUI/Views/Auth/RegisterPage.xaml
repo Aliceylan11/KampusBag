@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Auth.RegisterPage"
+             BackgroundColor="White"
+             Title="Yeni Hesap">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">
+
+            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                <Label Text="Aramıza Katıl" 
+                       FontSize="32" 
+                       FontAttributes="Bold" 
+                       TextColor="#1B305E" 
+                       HorizontalOptions="Center" />
+                <Label Text="KampusBag ile akademik iletişime başla" 
+                       FontSize="14" 
+                       TextColor="Gray" 
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="15">
+
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="FullNameEntry" 
+                           Placeholder="Ad Soyad" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="StudentNumberEntry" 
+                           Placeholder="Öğrenci Numarası" 
+                           Keyboard="Numeric" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="EmailEntry" 
+                           Placeholder="Kurumsal Email (@ogr.gumushane.edu.tr)" 
+                           Keyboard="Email" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="PasswordEntry" 
+                           Placeholder="Şifre" 
+                           IsPassword="True" 
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+            </VerticalStackLayout>
+
+            <Button Text="Hesap Oluştur" 
+                    Clicked="OnRegisterSubmitClicked"
+                    BackgroundColor="#1B305E" 
+                    TextColor="White" 
+                    CornerRadius="10" 
+                    HeightRequest="55" 
+                    FontAttributes="Bold" />
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Zaten üye misin?" VerticalOptions="Center"/>
+                <Button Text="Giriş Yap" 
+                        TextColor="#1B305E" 
+                        BackgroundColor="Transparent" 
+                        FontAttributes="Bold"
+                        Clicked="OnLoginClicked"/>
+            </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

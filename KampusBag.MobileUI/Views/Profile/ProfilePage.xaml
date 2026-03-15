@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Profile.ProfilePage"
+             Title="Profilim"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Frame WidthRequest="100" HeightRequest="100" CornerRadius="50" Padding="0" IsClippedToBounds="True" HorizontalOptions="Center" BorderColor="#1B305E">
+                    <Image Source="user_avatar.png" Aspect="AspectFill" />
+                </Frame>
+                <Label Text="Ali Ceylan" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="Black" />
+                <Label Text="Gümüşhane MYO - Bilgisayar Programcılığı" FontSize="14" HorizontalOptions="Center" TextColor="Gray" />
+            </VerticalStackLayout>
+
+            <Frame BackgroundColor="White" CornerRadius="15" Padding="20" BorderColor="#E0E0E0">
+                <VerticalStackLayout Spacing="10">
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="🚨" FontSize="20" VerticalOptions="Center" />
+                        <Label Text="Acil Durum Mesaj Hakkı" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <Label x:Name="CreditsLabel" Text="3 / 3" FontSize="32" FontAttributes="Bold" TextColor="#D32F2F" HorizontalOptions="Center" />
+
+                    <ProgressBar x:Name="CreditsProgress" Progress="1.0" ProgressColor="#D32F2F" HeightRequest="8" />
+
+                    <Label Text="Her dönem başında hakların yenilenir." FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="AYARLAR" FontSize="12" TextColor="Gray" Margin="5,0" />
+
+                <Frame BackgroundColor="White" Padding="15" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <HorizontalStackLayout Spacing="15">
+                            <Label Text="🌙" VerticalOptions="Center" />
+                            <Label Text="Karanlık Mod" VerticalOptions="Center" FontSize="16" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" x:Name="DarkModeSwitch" Toggled="OnDarkModeToggled" />
+                    </Grid>
+                </Frame>
+
+                <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}" 
+                       Padding="15" 
+                       CornerRadius="10" 
+                       BorderColor="#E0E0E0"
+                       HasShadow="False">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLogoutClicked" />
+                    </Frame.GestureRecognizers>
+
+                    <HorizontalStackLayout Spacing="15">
+                        <Label Text="🚪" VerticalOptions="Center" />
+                        <Label Text="Güvenli Çıkış" 
+                           VerticalOptions="Center" 
+                           FontSize="16" 
+                           TextColor="Red" 
+                           FontAttributes="Bold" />
+                    </HorizontalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

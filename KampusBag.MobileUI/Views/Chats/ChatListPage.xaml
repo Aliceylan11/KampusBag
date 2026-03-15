@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KampusBag.MobileUI.Views.Chats.ChatListPage"
+             Title="Sohbetler"
+             BackgroundColor="#F5F5F5">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Ekle" Clicked="OnAddChatClicked" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto, *">
+
+        <SearchBar Grid.Row="0" Placeholder="Sohbetlerde ara..." Margin="10" />
+
+        <CollectionView Grid.Row="1" x:Name="ChatsCollection" Margin="0,5">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="15,10" ColumnDefinitions="Auto, *, Auto">
+
+                        <Frame Grid.Column="0" 
+                               WidthRequest="55" HeightRequest="55" 
+                               CornerRadius="27.5" 
+                               Padding="0" 
+                               BackgroundColor="#1B305E">
+                            <Label Text="A" VerticalOptions="Center" HorizontalOptions="Center" TextColor="White" FontSize="20" />
+                        </Frame>
+
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="15,0">
+                            <Label Text="Ders Adı / Kişi" FontAttributes="Bold" FontSize="16" TextColor="Black" />
+                            <Label Text="Son mesaj buraya gelecek..." FontSize="13" TextColor="Gray" MaxLines="1" />
+                        </VerticalStackLayout>
+
+                        <Label Grid.Column="2" Text="12:45" FontSize="11" TextColor="Gray" VerticalOptions="Center" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>
