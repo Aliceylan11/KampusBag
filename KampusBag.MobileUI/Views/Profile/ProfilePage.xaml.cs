@@ -16,12 +16,11 @@ public partial class ProfilePage : ContentPage
     // GÜVENLİ ÇIKIŞ: İşte o meşhur metod
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        bool answer = await DisplayAlert("Çıkış", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", "Evet", "Hayır");
+        bool answer = await DisplayAlert("Çıkış", "Oturumu kapatmak istediğinize emin misiniz?", "Evet", "Hayır");
 
         if (answer)
         {
-            // Shell'den tamamen çıkıp NavigationPage ile MainPage'e (Giriş) dönüyoruz
-            // Bu işlem tüm AppShell hafızasını temizler ve en başa atar.
+            // Shell'den tamamen çıkıp Giriş ekranına (MainPage) kökten reset atıyoruz
             Application.Current.MainPage = new NavigationPage(new Views.MainPage());
         }
     }

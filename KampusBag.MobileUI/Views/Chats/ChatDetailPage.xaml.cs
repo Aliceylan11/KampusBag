@@ -25,20 +25,17 @@ public partial class ChatDetailPage : ContentPage
     // Mesaj Gönderme Butonu (➤)
     private async void OnSendMessageClicked(object sender, EventArgs e)
     {
-        // Boş mesaj gönderilmesini engelle
         if (string.IsNullOrWhiteSpace(MessageEntry.Text)) return;
 
-        // Mesajı listeye ekle (Ekrana anında düşer)
+        // Mesajı ekrana (ObservableCollection'a) ekle
         Messages.Add(MessageEntry.Text);
 
-        // Gönderdikten sonra kutuyu temizle
+        // Kutuyu temizle
         MessageEntry.Text = string.Empty;
 
-        // (Opsiyonel) Mesaj gönderildiğinde listenin en altına kaydır
+        // En alta kaydır (WhatsApp stili)
         if (Messages.Count > 0)
-        {
             MessagesList.ScrollTo(Messages.Count - 1);
-        }
     }
 
     // ACİL DURUM BUTONU (🚨)

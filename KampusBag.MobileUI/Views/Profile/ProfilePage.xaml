@@ -44,23 +44,18 @@
                     </Grid>
                 </Frame>
 
-                <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}" 
-                       Padding="15" 
+                <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#2C2C2C}" 
+                       Padding="0" 
                        CornerRadius="10" 
                        BorderColor="#E0E0E0"
-                       HasShadow="False">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnLogoutClicked" />
-                    </Frame.GestureRecognizers>
-
-                    <HorizontalStackLayout Spacing="15">
-                        <Label Text="🚪" VerticalOptions="Center" />
-                        <Label Text="Güvenli Çıkış" 
-                           VerticalOptions="Center" 
-                           FontSize="16" 
-                           TextColor="Red" 
-                           FontAttributes="Bold" />
-                    </HorizontalStackLayout>
+                       HasShadow="False"> 
+                    <Button Text="🚪  Güvenli Çıkış"
+                        Clicked="OnLogoutClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="Red"
+                        FontAttributes="Bold"
+                        HeightRequest="60"
+                        HorizontalOptions="Fill" />
                 </Frame>
             </VerticalStackLayout>
 
