@@ -9,7 +9,7 @@ namespace KampusBag.WebAPI
     {
         public static void Main(string[] args)
         {
-            // 1. PostgreSQL Tarih Ayarı (Burada olması en güvenlisidir)
+            // 1. PostgreSQL Tarih Ayarı
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
             var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +40,25 @@ namespace KampusBag.WebAPI
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+
+            // ==============================================================
+            // İŞTE EKSİK OLAN VE VERİTABANINI OLUŞTURACAK O SİHİRLİ KOD BURASI
+            // ==============================================================
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var context = services.GetRequiredService<KampusBagDbContext>();
+                    // Bu komut, veritabanı yoksa oluşturur, tabloları eksiksiz ekler.
+                    context.Database.Migrate();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Veritabanı oluşturulurken hata: " + ex.Message);
+                }
+            }
+            // ==============================================================
 
             app.Run();
         }
