@@ -52,16 +52,18 @@ public class UserService : IUserService
             return "Doğrulama kodu tekrar gönderildi!";
         }
 
-        // 2. Yeni kullanıcı (Buradaki alan isimleri User entity ile aynı olmalı)
+        // 2. Yeni kullanıcı (Buradaki alan isimleri User entity ile aynı olmalı) 
         var newUser = new User
         {
             Email = dto.Email,
             FullName = dto.FullName,
-            PasswordHash = HashPassword(dto.Password), // Aşağıdaki metod
+            PasswordHash = HashPassword(dto.Password),
             RegistrationNumber = dto.RegistrationNumber,
             Role = DetermineRoleByEmail(dto.Email),
             VerificationCode = GenerateRandomCode(),
-            IsEmailVerified = false
+            IsEmailVerified = false,
+            // POSTGRESQL'İ KURTARAN O SATIRI TEKRAR EKLİYORUZ:
+            CreatedAt = DateTime.UtcNow
         };
 
         await _userRepository.AddAsync(newUser);

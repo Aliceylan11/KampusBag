@@ -7,12 +7,13 @@ public class ApiService
 {
     private readonly HttpClient _httpClient;
 
-    // Şimdilik Windows Machine'de (Bilgisayarda) test edeceğimiz için localhost kullanıyoruz.
-    // Eğer portun farklıysa (örneğin 5001 veya 7000), burayı ona göre değiştir.
-    private const string BaseUrl = "http://localhost:5433/api/";
+    // Android Emülatör için 10.0.2.2 ve Web API portu (5178)
+    private const string BaseUrl = "http://10.0.2.2:5178/api/";
+
     public ApiService()
     {
-        _httpClient = new HttpClient();
+        // Adresi elle yazmak yerine yukarıdaki BaseUrl değişkenini çekiyoruz
+        _httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
     }
 
     // 1. KAYIT OLMA METODU

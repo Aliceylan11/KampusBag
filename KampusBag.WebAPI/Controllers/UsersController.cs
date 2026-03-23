@@ -2,6 +2,7 @@
 using KampusBag.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KampusBag.Core.DTOs;
 
 namespace KampusBag.WebAPI.Controllers;
 
@@ -38,6 +39,34 @@ public class UsersController : ControllerBase
         var results = await _userService.SearchUsersAsync(term);
         return Ok(results);
     }
+
+    // ==========================================
+    // 3. YENİ EKLENEN: KAYIT OL (REGISTER) METODU
+    // ==========================================
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] UserRegisterDto registerDto)
+    {
+        try
+        {
+            // UserService'deki yazdığın mantığı çağırıyoruz
+            var result = await _userService.RegisterUserAsync(registerDto);
+
+            // Eğer mesaj "başarılı" veya "gönderildi" kelimelerini içeriyorsa işlem tamamdır
+            if (result.Contains("başarılı") || result.Contains("gönderildi"))
+            {
+                return Ok(new { message = result }); // HTTP 200 döner
+            }
+
+            // Hata durumu varsa (örn: Mail zaten kullanımda) BadRequest dön
+            return BadRequest(new { message = result }); // HTTP 400 döner
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // 4. E-Posta Doğrulama
     [HttpPost("verify")]
     public async Task<IActionResult> Verify([FromQuery] string email, [FromQuery] string code)
     {

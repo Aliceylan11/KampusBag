@@ -35,6 +35,7 @@ public class KampusBagDbContext : DbContext
             FullName = "Nihat Özdemir",
             RegistrationNumber = "SICIL-789", // Hocanın akademik kimliği
             Email = "nihat@gumushane.edu.tr",
+            PasswordHash = "hashed_password_placeholder",
             Role = UserRole.Academic,
             CreatedAt = DateTime.UtcNow
         });
@@ -46,6 +47,7 @@ public class KampusBagDbContext : DbContext
             FullName = "Ali Ceylan",
             RegistrationNumber = "2411081054",
             Email = "2411081054@ogr.gumushane.edu.tr",
+            PasswordHash = "hashed_password_placeholder",
             Role = UserRole.Representative,
             CreatedAt = DateTime.UtcNow
         });

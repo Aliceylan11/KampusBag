@@ -56,15 +56,18 @@
                            HeightRequest="50" 
                            Margin="10,0" />
                 </Frame>
-
-                <Frame Padding="0" CornerRadius="10" 
-                       BorderColor="{AppThemeBinding Light=#E0E0E0, Dark=#444444}" 
-                       BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
                     <Entry x:Name="PasswordEntry" 
                            Placeholder="Şifre" 
                            IsPassword="True" 
-                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                           PlaceholderColor="{AppThemeBinding Light=Gray, Dark=#888888}"
+                           HeightRequest="50" 
+                           Margin="10,0" />
+                </Frame>
+
+                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
+                    <Entry x:Name="ConfirmPasswordEntry" 
+                           Placeholder="Şifre Tekrar" 
+                           IsPassword="True" 
                            HeightRequest="50" 
                            Margin="10,0" />
                 </Frame>

@@ -26,8 +26,11 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     public async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.ToListAsync();
 
-    public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
-
+    public async Task AddAsync(T entity)
+    {
+        await _dbSet.AddAsync(entity);
+        await _context.SaveChangesAsync(); // Veritabanına kalıcı olarak işleme komutu
+    }
     public void Update(T entity) => _dbSet.Update(entity);
 
     public void Delete(T entity) => _dbSet.Remove(entity);
