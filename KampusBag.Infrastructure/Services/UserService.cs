@@ -66,7 +66,9 @@ public class UserService : IUserService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _userRepository.AddAsync(newUser);
+        var task = _userRepository.AddAsync(newUser);
+        await task; // EF Core'un veritabanına kaydetme (Save) işlemini %100 bitirmesini zorla bekle.
+
         return "Kayıt başarılı! Lütfen mailinizi onaylayın.";
     }
 

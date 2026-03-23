@@ -17,49 +17,30 @@ public class KampusBagDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        // İlişkileri ve kısıtlamaları burada belirleyeceğiz (Fluent API)
-        modelBuilder.Entity<Message>().HasOne(m => m.Sender).WithMany().HasForeignKey(m => m.SenderId).OnDelete(DeleteBehavior.Restrict);
 
-        // 2. Acil Durum Hakkı - Kullanıcı İlişkisi
-        modelBuilder.Entity<EmergencyRight>().HasOne(er => er.User).WithOne().HasForeignKey<EmergencyRight>(er => er.UserId); // Her öğrencinin o dönem bir hak seti olur
+        // 1. Mesaj ve Gönderici İlişkisi (Silme davranışını kısıtlıyoruz ki silinen kullanıcıların eski mesajları patlamasın)
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        // 3. Öğrenci No Tekil Olmalı (Mahremiyet ve Arama için)
-        modelBuilder.Entity<User>().HasIndex(u => u.RegistrationNumber).IsUnique();
+        // 2. Acil Durum Hakkı - Kullanıcı İlişkisi (Birebir ilişki)
+        modelBuilder.Entity<EmergencyRight>()
+            .HasOne(er => er.User)
+            .WithOne()
+            .HasForeignKey<EmergencyRight>(er => er.UserId);
 
-        // 4. Ders Temsilcisi Belirleme
-        modelBuilder.Entity<CourseMembership>().HasIndex(cm => new { cm.CourseId, cm.UserId }).IsUnique();
-        var academicId = Guid.NewGuid();
-        modelBuilder.Entity<User>().HasData(new User
-        {
-            Id = academicId,
-            FullName = "Nihat Özdemir",
-            RegistrationNumber = "SICIL-789", // Hocanın akademik kimliği
-            Email = "nihat@gumushane.edu.tr",
-            PasswordHash = "hashed_password_placeholder",
-            Role = UserRole.Academic,
-            CreatedAt = DateTime.UtcNow
-        });
-        // 2. Örnek Temsilci (Senin profilin)
-        var studentId = Guid.NewGuid();
-        modelBuilder.Entity<User>().HasData(new User
-        {
-            Id = studentId,
-            FullName = "Ali Ceylan",
-            RegistrationNumber = "2411081054",
-            Email = "2411081054@ogr.gumushane.edu.tr",
-            PasswordHash = "hashed_password_placeholder",
-            Role = UserRole.Representative,
-            CreatedAt = DateTime.UtcNow
-        });
+        // 3. Öğrenci Numarası (Sicil No) Kesinlikle Tekil Olmalı
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.RegistrationNumber)
+            .IsUnique();
 
-        // 3. Örnek Ders
-        var courseId = Guid.NewGuid();
-        modelBuilder.Entity<Course>().HasData(new Course
-        {
-            Id = courseId,
-            Name = "Mobil Programlama (.NET MAUI)",
-            CourseCode = "BGM301",
-            AcademicId = academicId
-        });
+        // 4. Bir Öğrenci Bir Derse Sadece Bir Kez Kaydolabilir
+        modelBuilder.Entity<CourseMembership>()
+            .HasIndex(cm => new { cm.CourseId, cm.UserId })
+            .IsUnique();
+
+        // Not: Başlangıç (Seed) verileri temizlendi. Artık tüm veriler uygulama üzerinden (MAUI/Swagger) eklenecek.
     }
 }

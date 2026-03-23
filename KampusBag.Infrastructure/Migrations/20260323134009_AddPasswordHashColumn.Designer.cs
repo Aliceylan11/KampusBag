@@ -3,6 +3,7 @@ using System;
 using KampusBag.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KampusBag.Infrastructure.Migrations
 {
     [DbContext(typeof(KampusBagDbContext))]
-    partial class KampusBagDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260323134009_AddPasswordHashColumn")]
+    partial class AddPasswordHashColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,6 +47,15 @@ namespace KampusBag.Infrastructure.Migrations
                     b.HasIndex("AcademicId");
 
                     b.ToTable("Courses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("3bfc34df-43cb-4071-9f0f-4d0bef4ef346"),
+                            AcademicId = new Guid("80499a6b-cf80-418e-86fd-21ae0865f9f7"),
+                            CourseCode = "BGM301",
+                            Name = "Mobil Programlama (.NET MAUI)"
+                        });
                 });
 
             modelBuilder.Entity("KampusBag.Core.Entities.CourseMembership", b =>
@@ -172,6 +184,30 @@ namespace KampusBag.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("80499a6b-cf80-418e-86fd-21ae0865f9f7"),
+                            CreatedAt = new DateTime(2026, 3, 23, 13, 40, 9, 99, DateTimeKind.Utc).AddTicks(218),
+                            Email = "nihat@gumushane.edu.tr",
+                            FullName = "Nihat Özdemir",
+                            IsEmailVerified = false,
+                            PasswordHash = "hashed_password_placeholder",
+                            RegistrationNumber = "SICIL-789",
+                            Role = 2
+                        },
+                        new
+                        {
+                            Id = new Guid("c4cbcc7d-0fa7-4cba-b07b-bc87bd19eeec"),
+                            CreatedAt = new DateTime(2026, 3, 23, 13, 40, 9, 99, DateTimeKind.Utc).AddTicks(272),
+                            Email = "2411081054@ogr.gumushane.edu.tr",
+                            FullName = "Ali Ceylan",
+                            IsEmailVerified = false,
+                            PasswordHash = "hashed_password_placeholder",
+                            RegistrationNumber = "2411081054",
+                            Role = 3
+                        });
                 });
 
             modelBuilder.Entity("KampusBag.Core.Entities.Course", b =>

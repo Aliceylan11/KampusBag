@@ -7,8 +7,14 @@ public class ApiService
 {
     private readonly HttpClient _httpClient;
 
-    // Android Emülatör için 10.0.2.2 ve Web API portu (5178)
+    // Platforma göre API adresini otomatik belirleyen sihirli blok:
+#if ANDROID
+    // Android Emülatör için özel IP
     private const string BaseUrl = "http://10.0.2.2:5178/api/";
+#else
+    // Windows Machine, iOS ve Mac için standart Localhost
+    private const string BaseUrl = "http://localhost:5178/api/";
+#endif
 
     public ApiService()
     {
@@ -21,7 +27,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}users/register", registerDto);
+            // BaseAddress zaten tanımlı olduğu için sadece gideceği son noktayı (users/register) yazıyoruz
+            var response = await _httpClient.PostAsJsonAsync("users/register", registerDto);
             return response.IsSuccessStatusCode; // Eğer 200 OK dönerse true olacak
         }
         catch (Exception ex)
