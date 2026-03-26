@@ -13,6 +13,7 @@
                    FontAttributes="Bold" 
                    TextColor="#1B305E" 
                    HorizontalOptions="Center" />
+
             <Label Text="Lütfen kurumsal mail adresinize gelen 6 haneli kodu giriniz." 
                    FontSize="14" 
                    TextColor="Gray" 

@@ -37,4 +37,19 @@ public class ApiService
             return false;
         }
     }
+    public async Task<string> VerifyEmailAsync(string email, string code)
+    {
+        try
+        {
+            // api/users/verify?email=test@test.com&code=123456 formatında istek atıyoruz
+            var response = await _httpClient.PostAsync($"users/verify?email={email}&code={code}", null);
+            var result = await response.Content.ReadAsStringAsync();
+
+            return result; // API'den gelen mesajı (Başarılı veya Hata) döner
+        }
+        catch (Exception ex)
+        {
+            return $"Hata: {ex.Message}";
+        }
+    }
 }
