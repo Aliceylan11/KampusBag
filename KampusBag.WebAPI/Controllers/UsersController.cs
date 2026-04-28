@@ -12,24 +12,19 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IGenericRepository<User> _userRepository;
-
-    // Hem akıllı arama için Service'i hem de genel listeleme için Repository'yi bağladık
+     
     public UsersController(IUserService userService, IGenericRepository<User> userRepository)
     {
         _userService = userService;
         _userRepository = userRepository;
     }
-
-    // 1. Tüm Kullanıcıları Getir (Test amaçlı)
+     
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var users = await _userRepository.GetAllAsync();
         return Ok(users);
-    }
-
-    // 2. Akıllı Arama (Senin istediğin Öğrenci No / Hoca Adı ayrımı burada çalışacak)
-    // URL Örneği: api/Users/search?term=2411081054
+    } 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string term)
     {
@@ -39,10 +34,7 @@ public class UsersController : ControllerBase
         var results = await _userService.SearchUsersAsync(term);
         return Ok(results);
     }
-
-    // ==========================================
-    // 3. YENİ EKLENEN: KAYIT OL (REGISTER) METODU
-    // ==========================================
+      
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] UserRegisterDto registerDto)
     {
