@@ -7,6 +7,7 @@ public interface IUserService
 {
     Task<string> RegisterUserAsync(UserRegisterDto dto);
     Task<string> VerifyEmailAsync(string email, string code); // Yeni metod
+    Task<User?> AuthenticateAsync(string identifier, string password);
     Task<IEnumerable<User>> SearchUsersAsync(string searchTerm);
     UserRole DetermineRoleByEmail(string email);
 }
