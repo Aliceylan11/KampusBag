@@ -43,6 +43,7 @@ public class UsersController : ControllerBase
         {
             var result = await _userService.RegisterUserAsync(registerDto);
 
+            // E-posta gönderimi başarılı mı kontrol et
             if (result.Contains("başarılı") || result.Contains("gönderildi"))
             {
                 return Ok(new { message = result });
@@ -63,10 +64,10 @@ public class UsersController : ControllerBase
 
         if (result.Contains("başarıyla"))
         {
-            return Ok(result);
+            return Ok(new { message = result });
         }
 
-        return BadRequest(result);
+        return BadRequest(new { message = result });
     }
 
     [HttpPost("login")]
@@ -74,16 +75,34 @@ public class UsersController : ControllerBase
     {
         try
         {
-            // 1. Kullanıcıyı doğrula
-            var user = await _userService.AuthenticateAsync(loginDto.Identifier, loginDto.Password);
+            // Önce kullanıcının email doğrulama durumunu kontrol edelim
+            var users = await _userRepository.FindAsync(u =>
+                u.Email == loginDto.Identifier || u.RegistrationNumber == loginDto.Identifier);
+            var userCheck = users.FirstOrDefault();
 
-            // 2. Doğrulama başarısız olduysa
-            if (user == null)
+            if (userCheck != null && !userCheck.IsEmailVerified)
             {
-                return Unauthorized(new { message = "Hatalı kullanıcı adı, şifre veya hesabınız doğrulanmamış!" });
+                return Unauthorized(new
+                {
+                    message = "Hesabınız henüz doğrulanmamış! Lütfen e-posta adresinize gönderilen doğrulama kodunu kullanarak hesabınızı aktifleştirin.",
+                    emailVerified = false
+                });
             }
 
-            // 3. Başarılı giriş - Kullanıcı bilgilerini döndür
+            // Kullanıcıyı doğrula
+            var user = await _userService.AuthenticateAsync(loginDto.Identifier, loginDto.Password);
+
+            // Doğrulama başarısız olduysa
+            if (user == null)
+            {
+                return Unauthorized(new
+                {
+                    message = "Hatalı kullanıcı adı veya şifre!",
+                    emailVerified = true  // Şifre hatalı, email kontrolü geçti
+                });
+            }
+
+            // Başarılı giriş - Kullanıcı bilgilerini döndür
             return Ok(new
             {
                 message = "Giriş başarılı!",

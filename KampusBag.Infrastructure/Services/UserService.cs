@@ -10,10 +10,12 @@ namespace KampusBag.Infrastructure.Services;
 public class UserService : IUserService
 {
     private readonly IGenericRepository<User> _userRepository;
+    private readonly IEmailService _emailService;
 
-    public UserService(IGenericRepository<User> userRepository)
+    public UserService(IGenericRepository<User> userRepository, IEmailService emailService)
     {
         _userRepository = userRepository;
+        _emailService = emailService;
     }
 
     public async Task<string> VerifyEmailAsync(string email, string code)
@@ -47,9 +49,10 @@ public class UserService : IUserService
             return null;
         }
 
-        // 3. Email doğrulanmamışsa giriş yapmasına izin verme
+        // 3. KRİTİK: Email doğrulanmamışsa giriş yapmasına izin verme
         if (!user.IsEmailVerified)
         {
+            // Özel bir hata için null dönüyoruz, Controller'da kontrol edilecek
             return null;
         }
 
@@ -75,10 +78,21 @@ public class UserService : IUserService
             if (existingUser.IsEmailVerified)
                 return "Bu mail adresi zaten kullanımda.";
 
+            // Kullanıcı daha önce kayıt olmuş ama doğrulamamış
             existingUser.VerificationCode = GenerateRandomCode();
             await _userRepository.UpdateAsync(existingUser);
-            return "Doğrulama kodu tekrar gönderildi!";
+
+            // Yeni kod ile e-posta gönder
+            var resendResult = await _emailService.SendVerificationCodeAsync(existingUser.Email, existingUser.VerificationCode);
+
+            if (!resendResult)
+                return "E-posta gönderimi başarısız oldu. Lütfen daha sonra tekrar deneyin.";
+
+            return "Doğrulama kodu tekrar gönderildi! Lütfen e-postanızı kontrol edin.";
         }
+
+        // Yeni kullanıcı oluştur
+        var verificationCode = GenerateRandomCode();
 
         var newUser = new User
         {
@@ -87,15 +101,24 @@ public class UserService : IUserService
             PasswordHash = HashPassword(dto.Password),
             RegistrationNumber = dto.RegistrationNumber,
             Role = DetermineRoleByEmail(dto.Email),
-            VerificationCode = GenerateRandomCode(),
+            VerificationCode = verificationCode,
             IsEmailVerified = false,
             CreatedAt = DateTime.UtcNow
         };
 
-        var task = _userRepository.AddAsync(newUser);
-        await task;
+        await _userRepository.AddAsync(newUser);
 
-        return "Kayıt başarılı! Lütfen mailinizi onaylayın.";
+        // KRİTİK: Kullanıcı kaydedildikten HEMEN sonra doğrulama kodunu e-posta ile gönder
+        var emailSent = await _emailService.SendVerificationCodeAsync(newUser.Email, verificationCode);
+
+        if (!emailSent)
+        {
+            // E-posta gönderilemedi ama kullanıcı veritabanına kaydedildi
+            // Uyarı mesajı döndür
+            return "Kayıt başarılı ancak e-posta gönderiminde sorun yaşandı. Lütfen destek ekibiyle iletişime geçin.";
+        }
+
+        return "Kayıt başarılı! Lütfen e-posta adresinize gönderilen 6 haneli doğrulama kodunu girin.";
     }
 
     private string HashPassword(string password)
@@ -111,7 +134,7 @@ public class UserService : IUserService
     {
         if (email.EndsWith("@ogr.gumushane.edu.tr")) return UserRole.Student;
         if (email.EndsWith("@gumushane.edu.tr")) return UserRole.Academic;
-        throw new Exception("Geçersiz mail!");
+        throw new Exception("Geçersiz mail! Sadece Gümüşhane Üniversitesi kurumsal e-postaları kabul edilir.");
     }
 
     public async Task<IEnumerable<User>> SearchUsersAsync(string searchTerm)
