@@ -16,6 +16,25 @@ public class ApiService
     private const string BaseUrl = "http://localhost:5178/api/";
 #endif
 
+    // YENİ EKLEME: Basit Session yönetimi (static)
+    public static class Session
+    {
+        public static Guid UserId { get; set; }
+        public static string Email { get; set; }
+        public static string FullName { get; set; }
+        public static int Role { get; set; }
+        public static bool IsLoggedIn { get; set; }
+
+        public static void Clear()
+        {
+            UserId = Guid.Empty;
+            Email = string.Empty;
+            FullName = string.Empty;
+            Role = 0;
+            IsLoggedIn = false;
+        }
+    }
+
     public ApiService()
     {
         // Adresi elle yazmak yerine yukarıdaki BaseUrl değişkenini çekiyoruz
@@ -27,29 +46,106 @@ public class ApiService
     {
         try
         {
-            // BaseAddress zaten tanımlı olduğu için sadece gideceği son noktayı (users/register) yazıyoruz
             var response = await _httpClient.PostAsJsonAsync("users/register", registerDto);
-            return response.IsSuccessStatusCode; // Eğer 200 OK dönerse true olacak
+            return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            // İleride buraya hata loglama ekleyebiliriz
             return false;
         }
     }
+
+    // 2. EMAIL DOĞRULAMA METODU
     public async Task<string> VerifyEmailAsync(string email, string code)
     {
         try
         {
-            // api/users/verify?email=test@test.com&code=123456 formatında istek atıyoruz
             var response = await _httpClient.PostAsync($"users/verify?email={email}&code={code}", null);
             var result = await response.Content.ReadAsStringAsync();
 
-            return result; // API'den gelen mesajı (Başarılı veya Hata) döner
+            return result;
         }
         catch (Exception ex)
         {
             return $"Hata: {ex.Message}";
         }
+    }
+
+    // 3. YENİ EKLEME: LOGIN METODU
+    public async Task<(bool success, string message)> LoginAsync(string identifier, string password)
+    {
+        try
+        {
+            // Login DTO'sunu hazırlıyoruz
+            var loginDto = new UserLoginDto
+            {
+                Identifier = identifier,
+                Password = password
+            };
+
+            // Backend'e POST isteği gönderiyoruz
+            var response = await _httpClient.PostAsJsonAsync("users/login", loginDto);
+
+            // Response içeriğini okuyoruz
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Başarılı giriş - JSON'ı parse ediyoruz
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (loginResponse?.User != null)
+                {
+                    // Session'a kullanıcı bilgilerini kaydediyoruz
+                    Session.UserId = loginResponse.User.Id;
+                    Session.Email = loginResponse.User.Email;
+                    Session.FullName = loginResponse.User.FullName;
+                    Session.Role = loginResponse.User.Role;
+                    Session.IsLoggedIn = true;
+
+                    return (true, loginResponse.Message ?? "Giriş başarılı!");
+                }
+
+                return (false, "Kullanıcı bilgileri alınamadı");
+            }
+            else
+            {
+                // Hatalı giriş - Backend'den gelen error mesajını parse et
+                try
+                {
+                    var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    return (false, errorResponse?.Message ?? "Giriş başarısız");
+                }
+                catch
+                {
+                    return (false, "Hatalı kullanıcı adı veya şifre!");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}");
+        }
+    }
+
+    // Backend response modelleri
+    private class LoginResponse
+    {
+        public string Message { get; set; }
+        public UserInfo User { get; set; }
+    }
+
+    private class UserInfo
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string RegistrationNumber { get; set; }
+        public int Role { get; set; }
+    }
+
+    private class ErrorResponse
+    {
+        public string Message { get; set; }
     }
 }

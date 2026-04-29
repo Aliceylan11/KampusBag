@@ -1,36 +1,78 @@
+using KampusBag.MobileUI.Services;
+
 namespace KampusBag.MobileUI.Views.Auth;
 
 public partial class LoginPage : ContentPage
 {
+    private readonly ApiService _apiService;
+
     public LoginPage()
     {
         InitializeComponent();
+        _apiService = new ApiService();
     }
 
     private async void OnLoginSubmitClicked(object sender, EventArgs e)
     {
-        // 1. Burada normalde backend kontrolü yapılır. 
-        // Şimdilik 'boş değilse gir' mantığı kuralım.
-        if (!string.IsNullOrEmpty(IdentifierEntry.Text) && !string.IsNullOrEmpty(PasswordEntry.Text))
+        // 1. Boş alan kontrolü
+        if (string.IsNullOrWhiteSpace(IdentifierEntry.Text) ||
+            string.IsNullOrWhiteSpace(PasswordEntry.Text))
         {
-            // 2. BAĞLANTI NOKTASI: 
-            // Mevcut MainPage'i çöpe atıp yerine AppShell'i (Tabbar'lı yapıyı) koyuyoruz.
-            Application.Current.MainPage = new AppShell();
-
-            // Not: 'new NavigationPage' dememize gerek yok, Shell zaten kendi içinde 
-            // gelişmiş bir navigasyon barındırır.
+            await DisplayAlert("Hata", "Lütfen tüm alanları doldurun.", "Tamam");
+            return;
         }
-        else
+
+        // 2. Butonu devre dışı bırak (çift tıklama önleme)
+        var loginButton = sender as Button;
+        if (loginButton != null)
         {
-            await DisplayAlert("Hata", "Lütfen bilgilerinizi eksiksiz girin.", "Tamam");
+            loginButton.IsEnabled = false;
+            loginButton.Text = "Giriş yapılıyor..."; // Loading göstergesi
+        }
+
+        try
+        {
+            // 3. API'ye login isteği gönder
+            var (success, message) = await _apiService.LoginAsync(
+                IdentifierEntry.Text.Trim(),
+                PasswordEntry.Text
+            );
+
+            if (success)
+            {
+                // 4. Başarılı giriş - Ana sayfaya yönlendir
+                await DisplayAlert("Başarılı", message, "Tamam");
+
+                // Shell navigation ile ana sayfaya geçiş
+                Application.Current.MainPage = new AppShell();
+            }
+            else
+            {
+                // 5. Hatalı giriş - Kullanıcıya bilgi ver
+                await DisplayAlert("Giriş Hatası", message, "Tamam");
+
+                // Şifre alanını temizle (güvenlik)
+                PasswordEntry.Text = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Hata", $"Beklenmeyen bir hata oluştu: {ex.Message}", "Tamam");
+        }
+        finally
+        {
+            // 6. Butonu tekrar aktif et
+            if (loginButton != null)
+            {
+                loginButton.IsEnabled = true;
+                loginButton.Text = "Giriş Yap";
+            }
         }
     }
 
     private async void OnRegisterClicked(object sender, EventArgs e)
     {
-        // Bir önceki sayfaya (eğer Register ise) dönmek daha mantıklı olabilir:
-        // await Navigation.PopAsync();
-        // Ama doğrudan gitmek istersen bu da çalışır:
+        // Kayıt sayfasına yönlendir
         await Navigation.PushAsync(new RegisterPage());
     }
 

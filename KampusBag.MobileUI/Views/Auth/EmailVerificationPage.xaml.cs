@@ -7,7 +7,7 @@ public partial class EmailVerificationPage : ContentPage
     private readonly ApiService _apiService;
     private readonly string _userEmail;
 
-    // Constructur'ı (Yapıcı metodu) email parametresi alacak şekilde güncelledik
+    // Constructor'ı (Yapıcı metodu) email parametresi alacak şekilde güncelledik
     public EmailVerificationPage(string email)
     {
         InitializeComponent();
@@ -23,7 +23,11 @@ public partial class EmailVerificationPage : ContentPage
         if (OtpEntry.Text?.Length == 6)
         {
             // Çift tıklamayı önlemek için butonu kilitliyoruz
-            if (clickedButton != null) clickedButton.IsEnabled = false;
+            if (clickedButton != null)
+            {
+                clickedButton.IsEnabled = false;
+                clickedButton.Text = "Doğrulanıyor..."; // Loading göstergesi
+            }
 
             try
             {
@@ -32,7 +36,10 @@ public partial class EmailVerificationPage : ContentPage
                 if (result.Contains("başarıyla") || result.ToLower().Contains("success"))
                 {
                     await DisplayAlert("Başarılı", "Hesabınız doğrulandı. Giriş yapabilirsiniz.", "Tamam");
-                    await Navigation.PopToRootAsync();
+
+                    // GÜNCELLEME: Login sayfasına yönlendir
+                    // Navigation stack'i temizleyip Login sayfasına git
+                    await Navigation.PopToRootAsync(); // Ana sayfaya dön
                 }
                 else
                 {
@@ -46,7 +53,11 @@ public partial class EmailVerificationPage : ContentPage
             finally
             {
                 // İşlem bitince butonu tekrar aktif ediyoruz
-                if (clickedButton != null) clickedButton.IsEnabled = true;
+                if (clickedButton != null)
+                {
+                    clickedButton.IsEnabled = true;
+                    clickedButton.Text = "Doğrula ve Devam Et";
+                }
             }
         }
         else
@@ -54,6 +65,7 @@ public partial class EmailVerificationPage : ContentPage
             await DisplayAlert("Hata", "Lütfen 6 haneli kodu eksiksiz giriniz.", "Tamam");
         }
     }
+
     private async void OnResendCodeClicked(object sender, EventArgs e)
     {
         // Şimdilik sadece uyarı veriyor, ileride buraya da API isteği eklenebilir
