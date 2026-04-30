@@ -122,8 +122,29 @@ public class UserService : IUserService
 
     public UserRole DetermineRoleByEmail(string email)
     {
-        if (email.EndsWith("@ogr.gumushane.edu.tr")) return UserRole.Student;
-        if (email.EndsWith("@gumushane.edu.tr")) return UserRole.Academic;
+        if (string.IsNullOrWhiteSpace(email))
+            throw new Exception("E-posta adresi boş olamaz.");
+
+        // 1. ADIM: Gizli Yönetici Kapısı (Özel Hotmail Adresin)
+        // Bu kontrol en üstte olmalı ki üniversite kısıtlamasına takılmasın.
+        if (email.Equals("ali_cey12@hotmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return UserRole.Admin;
+        }
+
+        // 2. ADIM: Akademisyen Kontrolü
+        if (email.EndsWith("@gumushane.edu.tr", StringComparison.OrdinalIgnoreCase))
+        {
+            return UserRole.Academic; // Projedeki karşılığı Teacher olarak tanımlı
+        }
+
+        // 3. ADIM: Öğrenci Kontrolü
+        if (email.EndsWith("@ogr.gumushane.edu.tr", StringComparison.OrdinalIgnoreCase))
+        {
+            return UserRole.Student;
+        }
+
+        // 4. ADIM: Geçersiz Mail Hatası
         throw new Exception("Geçersiz mail! Sadece Gümüşhane Üniversitesi kurumsal e-postaları kabul edilir.");
     }
 

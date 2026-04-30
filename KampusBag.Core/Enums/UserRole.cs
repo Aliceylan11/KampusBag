@@ -10,6 +10,7 @@ namespace KampusBag.Core.Enums
     {
         Student = 1,
         Academic = 2,
-        Representative = 3
+        Representative = 3,
+        Admin = 4
     }
 }

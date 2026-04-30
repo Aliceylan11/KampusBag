@@ -7,6 +7,8 @@ public partial class ProfilePage : ContentPage
     public ProfilePage()
     {
         InitializeComponent();
+        // Cihazın mevcut temasına göre switch'i ayarla
+        DarkModeSwitch.IsToggled = Application.Current.RequestedTheme == AppTheme.Dark;
     }
 
     protected override void OnAppearing()
@@ -17,56 +19,49 @@ public partial class ProfilePage : ContentPage
 
     private void LoadUserInfo()
     {
-        // Session'dan kullanıcı bilgilerini çek
         var fullName = ApiService.Session.FullName;
         var email = ApiService.Session.Email;
         var role = ApiService.Session.Role;
 
-        // Ad Soyad
-        FullNameLabel.Text = string.IsNullOrEmpty(fullName) ? "Kullanıcı" : fullName;
+        FullNameLabel.Text = string.IsNullOrEmpty(fullName) ? "Yönetici" : fullName;
+        AvatarLabel.Text = string.IsNullOrEmpty(fullName) ? "A" : fullName.Trim()[0].ToString().ToUpper();
+        EmailLabel.Text = email ?? "—";
 
-        // Avatar: İsmin baş harfi
-        AvatarLabel.Text = string.IsNullOrEmpty(fullName)
-            ? "?"
-            : fullName.Trim()[0].ToString().ToUpper();
-
-        // E-posta
-        EmailLabel.Text = string.IsNullOrEmpty(email) ? "—" : email;
-
-        // Öğrenci No / Sicil No — e-postadan @ öncesi
-        if (!string.IsNullOrEmpty(email) && email.Contains("@"))
+        if (role == 4) // Hotmail Admin Kontrolü
         {
-            var prefix = email.Split('@')[0];
-
-            // Akademisyen için sicil, öğrenci için numara etiketi
-            RegistrationLabel.Text = role == 2 ? "Sicil No" : "Öğrenci No";
-            RegistrationNumberLabel.Text = prefix;
+            RoleLabel.Text = "👑  Sistem Yöneticisi";
+            RoleDetailLabel.Text = "SuperAdmin / Geliştirici";
+            RegistrationLabel.Text = "Yönetici Kimliği";
+            RegistrationNumberLabel.Text = "ADMIN-001";
+            EmergencyRightsLabel.Text = "∞";
         }
         else
         {
-            RegistrationLabel.Text = "Kayıt No";
-            RegistrationNumberLabel.Text = "—";
-        }
+            if (!string.IsNullOrEmpty(email) && email.Contains("@"))
+            {
+                var prefix = email.Split('@')[0];
+                RegistrationLabel.Text = role == 2 ? "Sicil No" : "Öğrenci No";
+                RegistrationNumberLabel.Text = prefix;
+            }
 
-        // Rol gösterimi
-        switch (role)
-        {
-            case 1:
-                RoleLabel.Text = "👨‍🎓  Öğrenci";
-                RoleDetailLabel.Text = "Öğrenci";
-                break;
-            case 2:
-                RoleLabel.Text = "👨‍🏫  Akademisyen";
-                RoleDetailLabel.Text = "Akademisyen";
-                break;
-            case 3:
-                RoleLabel.Text = "🏅  Temsilci";
-                RoleDetailLabel.Text = "Sınıf Temsilcisi";
-                break;
-            default:
-                RoleLabel.Text = "Kullanıcı";
-                RoleDetailLabel.Text = "—";
-                break;
+            switch (role)
+            {
+                case 1:
+                    RoleLabel.Text = "👨‍🎓  Öğrenci";
+                    RoleDetailLabel.Text = "Öğrenci";
+                    EmergencyRightsLabel.Text = "3";
+                    break;
+                case 2:
+                    RoleLabel.Text = "👨‍🏫  Akademisyen";
+                    RoleDetailLabel.Text = "Akademisyen";
+                    EmergencyRightsLabel.Text = "∞";
+                    break;
+                case 3:
+                    RoleLabel.Text = "👥  Temsilci";
+                    RoleDetailLabel.Text = "Temsilci";
+                    EmergencyRightsLabel.Text = "3";
+                    break;
+            }
         }
     }
 
@@ -77,18 +72,11 @@ public partial class ProfilePage : ContentPage
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        bool answer = await DisplayAlert(
-            "Çıkış Yap",
-            "Oturumunuzu kapatmak istediğinize emin misiniz?",
-            "Evet, Çık",
-            "Hayır");
-
-        if (!answer) return;
-
-        // Session'ı temizle
-        ApiService.Session.Clear();
-
-        // Navigasyon stack'ini sıfırla ve MainPage'e dön
-        Application.Current.MainPage = new NavigationPage(new Views.MainPage());
+        bool answer = await DisplayAlert("Çıkış", "Oturumu kapatıyorsunuz?", "Evet", "Hayır");
+        if (answer)
+        {
+            ApiService.Session.Clear();
+            Application.Current.MainPage = new NavigationPage(new Views.Auth.LoginPage());
+        }
     }
 }
