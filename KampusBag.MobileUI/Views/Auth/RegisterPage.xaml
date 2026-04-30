@@ -3,94 +3,158 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Auth.RegisterPage"
              BackgroundColor="{AppThemeBinding Light=White, Dark=#121212}"
-             Title="Yeni Hesap">
+             Title="Kayıt Ol">
 
     <ScrollView>
-        <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">
+        <VerticalStackLayout Spacing="0" Padding="28" VerticalOptions="Center">
 
-            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
-                <Label Text="Aramıza Katıl" 
-                       FontSize="32" 
-                       FontAttributes="Bold" 
-                       TextColor="{AppThemeBinding Light=#1B305E, Dark=#6FA8FF}" 
-                       HorizontalOptions="Center" />
-                <Label Text="KampusBag ile akademik iletişime başla" 
-                       FontSize="14" 
-                       TextColor="{AppThemeBinding Light=Gray, Dark=#AAAAAA}" 
-                       HorizontalOptions="Center" />
+            <!-- Başlık Alanı -->
+            <VerticalStackLayout Spacing="6" Margin="0,0,0,30">
+                <Label Text="🎓"
+                       FontSize="44"
+                       HorizontalOptions="Start"
+                       Margin="0,0,0,4"/>
+                <Label Text="Aramıza Katıl"
+                       FontSize="30"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#1B305E, Dark=#6FA8FF}" />
+                <Label Text="Kurumsal e-postanla hesap oluştur"
+                       FontSize="14"
+                       TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
             </VerticalStackLayout>
 
-            <VerticalStackLayout Spacing="15">
+            <!-- Form Alanları -->
+            <VerticalStackLayout Spacing="14">
 
-                <Frame Padding="0" CornerRadius="10" 
-                       BorderColor="{AppThemeBinding Light=#E0E0E0, Dark=#444444}" 
-                       BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
-                    <Entry x:Name="FullNameEntry" 
-                           Placeholder="Ad Soyad" 
-                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                           PlaceholderColor="{AppThemeBinding Light=Gray, Dark=#888888}"
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
+                <!-- Ad Soyad -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="👤  Ad Soyad"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                           Margin="4,0"/>
+                    <Frame Padding="0" CornerRadius="12"
+                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                           BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#1F2937}">
+                        <Entry x:Name="FullNameEntry"
+                               Placeholder="Adınız ve soyadınız"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               PlaceholderColor="{AppThemeBinding Light=#9CA3AF, Dark=#6B7280}"
+                               BackgroundColor="Transparent"
+                               HeightRequest="52" Margin="14,0" />
+                    </Frame>
+                </VerticalStackLayout>
 
-                <Frame Padding="0" CornerRadius="10" 
-                       BorderColor="{AppThemeBinding Light=#E0E0E0, Dark=#444444}" 
-                       BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
-                    <Entry x:Name="StudentNumberEntry" 
-                           Placeholder="Öğrenci Numarası" 
-                           Keyboard="Numeric" 
-                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                           PlaceholderColor="{AppThemeBinding Light=Gray, Dark=#888888}"
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
+                <!-- Öğrenci No -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="🔢  Öğrenci / Sicil Numarası"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                           Margin="4,0"/>
+                    <Frame Padding="0" CornerRadius="12"
+                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                           BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#1F2937}">
+                        <Entry x:Name="StudentNumberEntry"
+                               Placeholder="2411081054"
+                               Keyboard="Numeric"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               PlaceholderColor="{AppThemeBinding Light=#9CA3AF, Dark=#6B7280}"
+                               BackgroundColor="Transparent"
+                               HeightRequest="52" Margin="14,0" />
+                    </Frame>
+                </VerticalStackLayout>
 
-                <Frame Padding="0" CornerRadius="10" 
-                       BorderColor="{AppThemeBinding Light=#E0E0E0, Dark=#444444}" 
-                       BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
-                    <Entry x:Name="EmailEntry" 
-                           Placeholder="Kurumsal Email (@ogr.gumushane.edu.tr)" 
-                           Keyboard="Email" 
-                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                           PlaceholderColor="{AppThemeBinding Light=Gray, Dark=#888888}"
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
-                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Entry x:Name="PasswordEntry" 
-                           Placeholder="Şifre" 
-                           IsPassword="True" 
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
+                <!-- Email -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="📧  Kurumsal E-posta"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                           Margin="4,0"/>
+                    <Frame Padding="0" CornerRadius="12"
+                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                           BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#1F2937}">
+                        <Entry x:Name="EmailEntry"
+                               Placeholder="ad@ogr.gumushane.edu.tr"
+                               Keyboard="Email"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               PlaceholderColor="{AppThemeBinding Light=#9CA3AF, Dark=#6B7280}"
+                               BackgroundColor="Transparent"
+                               HeightRequest="52" Margin="14,0" />
+                    </Frame>
+                </VerticalStackLayout>
 
-                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Entry x:Name="ConfirmPasswordEntry" 
-                           Placeholder="Şifre Tekrar" 
-                           IsPassword="True" 
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
+                <!-- Şifre -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="🔑  Şifre"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                           Margin="4,0"/>
+                    <Frame Padding="0" CornerRadius="12"
+                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                           BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#1F2937}">
+                        <Entry x:Name="PasswordEntry"
+                               Placeholder="En az 6 karakter"
+                               IsPassword="True"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               PlaceholderColor="{AppThemeBinding Light=#9CA3AF, Dark=#6B7280}"
+                               BackgroundColor="Transparent"
+                               HeightRequest="52" Margin="14,0" />
+                    </Frame>
+                </VerticalStackLayout>
+
+                <!-- Şifre Tekrar -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="🔑  Şifre Tekrar"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                           Margin="4,0"/>
+                    <Frame Padding="0" CornerRadius="12"
+                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                           BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#1F2937}">
+                        <Entry x:Name="ConfirmPasswordEntry"
+                               Placeholder="Şifrenizi tekrar girin"
+                               IsPassword="True"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               PlaceholderColor="{AppThemeBinding Light=#9CA3AF, Dark=#6B7280}"
+                               BackgroundColor="Transparent"
+                               HeightRequest="52" Margin="14,0" />
+                    </Frame>
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
 
-            <Button Text="Hesap Oluştur" 
+            <!-- Kayıt Ol Butonu -->
+            <Button Text="Hesap Oluştur"
                     Clicked="OnRegisterSubmitClicked"
-                    BackgroundColor="#1B305E" 
-                    TextColor="White" 
-                    CornerRadius="10" 
-                    HeightRequest="55" 
-                    Margin="0,10,0,0"
-                    FontAttributes="Bold" />
+                    BackgroundColor="#1B305E"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="56"
+                    FontAttributes="Bold"
+                    FontSize="16"
+                    Margin="0,24,0,0" />
 
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
-                <Label Text="Zaten üye misin?" 
-                       TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                       VerticalOptions="Center"/>
-                <Button Text="Giriş Yap" 
-                        TextColor="{AppThemeBinding Light=#1B305E, Dark=#6FA8FF}" 
-                        BackgroundColor="Transparent" 
+            <!-- Bilgi Notu -->
+            <Frame BackgroundColor="#EFF6FF"
+                   BorderColor="#BFDBFE"
+                   CornerRadius="10"
+                   Padding="14,10"
+                   Margin="0,16,0,0">
+                <Label Text="ℹ️  Yalnızca @ogr.gumushane.edu.tr veya @gumushane.edu.tr uzantılı e-postalar kabul edilmektedir."
+                       FontSize="12"
+                       TextColor="#1D4ED8"
+                       HorizontalTextAlignment="Center"/>
+            </Frame>
+
+            <!-- Giriş Yap -->
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="4" Margin="0,16,0,0">
+                <Label Text="Zaten üye misin?"
+                       TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}"
+                       VerticalOptions="Center" FontSize="14"/>
+                <Button Text="Giriş Yap"
+                        TextColor="#1B305E"
+                        BackgroundColor="Transparent"
                         FontAttributes="Bold"
+                        FontSize="14"
                         Clicked="OnLoginClicked"/>
             </HorizontalStackLayout>
 

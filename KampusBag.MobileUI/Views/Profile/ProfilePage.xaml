@@ -3,61 +3,241 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Profile.ProfilePage"
              Title="Profilim"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="{AppThemeBinding Light=#F3F4F6, Dark=#111827}">
 
     <ScrollView>
-        <VerticalStackLayout Spacing="20" Padding="20">
+        <VerticalStackLayout Spacing="0">
 
-            <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
-                <Frame WidthRequest="100" HeightRequest="100" CornerRadius="50" Padding="0" IsClippedToBounds="True" HorizontalOptions="Center" BorderColor="#1B305E">
-                    <Image Source="user_avatar.png" Aspect="AspectFill" />
-                </Frame>
-                <Label Text="Ali Ceylan" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="Black" />
-                <Label Text="Gümüşhane MYO - Bilgisayar Programcılığı" FontSize="14" HorizontalOptions="Center" TextColor="Gray" />
-            </VerticalStackLayout>
+            <!-- ÜST BANNER: Lacivert arka plan -->
+            <Grid BackgroundColor="#1B305E"
+                  Padding="28,40,28,60">
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
 
-            <Frame BackgroundColor="White" CornerRadius="15" Padding="20" BorderColor="#E0E0E0">
-                <VerticalStackLayout Spacing="10">
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="🚨" FontSize="20" VerticalOptions="Center" />
-                        <Label Text="Acil Durum Mesaj Hakkı" FontSize="16" FontAttributes="Bold" VerticalOptions="Center" />
-                    </HorizontalStackLayout>
+                    <!-- Avatar Çemberi: Baş Harf -->
+                    <Frame WidthRequest="90" HeightRequest="90"
+                           CornerRadius="45" Padding="0"
+                           BackgroundColor="#FFF"
+                           BorderColor="#FFF"
+                           HorizontalOptions="Center">
+                        <Label x:Name="AvatarLabel"
+                               Text="?"
+                               FontSize="36"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Frame>
 
-                    <Label x:Name="CreditsLabel" Text="3 / 3" FontSize="32" FontAttributes="Bold" TextColor="#D32F2F" HorizontalOptions="Center" />
+                    <!-- Ad Soyad -->
+                    <Label x:Name="FullNameLabel"
+                           Text="Yükleniyor..."
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalOptions="Center"/>
 
-                    <ProgressBar x:Name="CreditsProgress" Progress="1.0" ProgressColor="#D32F2F" HeightRequest="8" />
+                    <!-- Rol Badge -->
+                    <Frame x:Name="RoleBadge"
+                           Padding="14,5"
+                           CornerRadius="20"
+                           BackgroundColor="#FFF"
+                           BorderColor="#FFF"
+                           HorizontalOptions="Center">
+                        <Label x:Name="RoleLabel"
+                               Text="Öğrenci"
+                               FontSize="13"
+                               TextColor="Black"
+                               HorizontalOptions="Center"/>
+                    </Frame>
 
-                    <Label Text="Her dönem başında hakların yenilenir." FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- İSTATİSTİK KARTI - Banner'a bindirme efekti -->
+            <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                   BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                   CornerRadius="16"
+                   Padding="0"
+                   Margin="20,-28,20,0"
+                   HasShadow="True">
+                <Grid ColumnDefinitions="*, Auto, *, Auto, *">
+
+                    <!-- Derslerim -->
+                    <VerticalStackLayout Grid.Column="0" Spacing="4"
+                                        Padding="12,18" HorizontalOptions="Center">
+                        <Label Text="7"
+                               FontSize="26" FontAttributes="Bold"
+                               TextColor="#1B305E" HorizontalOptions="Center"/>
+                        <Label Text="Ders"
+                               FontSize="12" TextColor="#6B7280"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+
+                    <BoxView Grid.Column="1" WidthRequest="1"
+                             Color="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                             VerticalOptions="Fill" Margin="0,12"/>
+
+                    <!-- Mesajlarım -->
+                    <VerticalStackLayout Grid.Column="2" Spacing="4"
+                                        Padding="12,18" HorizontalOptions="Center">
+                        <Label Text="42"
+                               FontSize="26" FontAttributes="Bold"
+                               TextColor="#1B305E" HorizontalOptions="Center"/>
+                        <Label Text="Mesaj"
+                               FontSize="12" TextColor="#6B7280"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+
+                    <BoxView Grid.Column="3" WidthRequest="1"
+                             Color="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                             VerticalOptions="Fill" Margin="0,12"/>
+
+                    <!-- Acil Hak -->
+                    <VerticalStackLayout Grid.Column="4" Spacing="4"
+                                        Padding="12,18" HorizontalOptions="Center">
+                        <Label x:Name="EmergencyRightsLabel"
+                               Text="3"
+                               FontSize="26" FontAttributes="Bold"
+                               TextColor="#D32F2F" HorizontalOptions="Center"/>
+                        <Label Text="Acil Hak"
+                               FontSize="12" TextColor="#6B7280"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+
+                </Grid>
+            </Frame>
+
+            <!-- BİLGİ KARTI -->
+            <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                   BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                   CornerRadius="16"
+                   Padding="20"
+                   Margin="20,16,20,0">
+                <VerticalStackLayout Spacing="0">
+
+                    <Label Text="Hesap Bilgileri"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="#6B7280"
+                           Margin="0,0,0,14"/>
+
+                    <!-- E-posta -->
+                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="14"
+                          Padding="0,10" >
+                        <Frame Grid.Column="0" WidthRequest="38" HeightRequest="38"
+                               CornerRadius="8" Padding="0"
+                               BackgroundColor="#EFF6FF" BorderColor="Transparent">
+                            <Label Text="📧" FontSize="18"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label Text="E-posta" FontSize="11" TextColor="#9CA3AF"/>
+                            <Label x:Name="EmailLabel"
+                                   Text="—"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                   FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <BoxView HeightRequest="1"
+                             Color="{AppThemeBinding Light=#F3F4F6, Dark=#374151}"
+                             Margin="0,2"/>
+
+                    <!-- Öğrenci / Sicil No -->
+                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="14"
+                          Padding="0,10">
+                        <Frame Grid.Column="0" WidthRequest="38" HeightRequest="38"
+                               CornerRadius="8" Padding="0"
+                               BackgroundColor="#F0FDF4" BorderColor="Transparent">
+                            <Label Text="🔢" FontSize="18"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label x:Name="RegistrationLabel"
+                                   Text="Öğrenci No" FontSize="11" TextColor="#9CA3AF"/>
+                            <Label x:Name="RegistrationNumberLabel"
+                                   Text="—"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                   FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <BoxView HeightRequest="1"
+                             Color="{AppThemeBinding Light=#F3F4F6, Dark=#374151}"
+                             Margin="0,2"/>
+
+                    <!-- Rol -->
+                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="14"
+                          Padding="0,10">
+                        <Frame Grid.Column="0" WidthRequest="38" HeightRequest="38"
+                               CornerRadius="8" Padding="0"
+                               BackgroundColor="#FEF3C7" BorderColor="Transparent">
+                            <Label Text="🎓" FontSize="18"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label Text="Rol" FontSize="11" TextColor="#9CA3AF"/>
+                            <Label x:Name="RoleDetailLabel"
+                                   Text="—"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                   FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
                 </VerticalStackLayout>
             </Frame>
 
-            <VerticalStackLayout Spacing="10">
-                <Label Text="AYARLAR" FontSize="12" TextColor="Gray" Margin="5,0" />
+            <!-- AYARLAR KARTI -->
+            <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                   BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                   CornerRadius="16"
+                   Padding="20"
+                   Margin="20,12,20,0">
+                <VerticalStackLayout Spacing="0">
 
-                <Frame BackgroundColor="White" Padding="15" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Grid ColumnDefinitions="*, Auto">
-                        <HorizontalStackLayout Spacing="15">
-                            <Label Text="🌙" VerticalOptions="Center" />
-                            <Label Text="Karanlık Mod" VerticalOptions="Center" FontSize="16" />
-                        </HorizontalStackLayout>
-                        <Switch Grid.Column="1" x:Name="DarkModeSwitch" Toggled="OnDarkModeToggled" />
+                    <Label Text="Ayarlar"
+                           FontSize="13" FontAttributes="Bold"
+                           TextColor="#6B7280"
+                           Margin="0,0,0,14"/>
+
+                    <!-- Karanlık Mod -->
+                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="14">
+                        <Frame Grid.Column="0" WidthRequest="38" HeightRequest="38"
+                               CornerRadius="8" Padding="0"
+                               BackgroundColor="#F3F0FF" BorderColor="Transparent">
+                            <Label Text="🌙" FontSize="18"
+                                   HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Frame>
+                        <Label Grid.Column="1" Text="Karanlık Mod"
+                               FontSize="15"
+                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                               VerticalOptions="Center"/>
+                        <Switch Grid.Column="2"
+                                x:Name="DarkModeSwitch"
+                                Toggled="OnDarkModeToggled"
+                                VerticalOptions="Center"/>
                     </Grid>
-                </Frame>
 
-                <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#2C2C2C}" 
-                       Padding="0" 
-                       CornerRadius="10" 
-                       BorderColor="#E0E0E0"
-                       HasShadow="False"> 
-                    <Button Text="🚪  Güvenli Çıkış"
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ÇIKIŞ BUTONU -->
+            <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                   BorderColor="{AppThemeBinding Light=#FEE2E2, Dark=#7F1D1D}"
+                   CornerRadius="16"
+                   Padding="0"
+                   Margin="20,12,20,32">
+                <Button Text="🚪  Güvenli Çıkış Yap"
                         Clicked="OnLogoutClicked"
                         BackgroundColor="Transparent"
-                        TextColor="Red"
+                        TextColor="#DC2626"
                         FontAttributes="Bold"
-                        HeightRequest="60"
+                        FontSize="15"
+                        HeightRequest="58"
                         HorizontalOptions="Fill" />
-                </Frame>
-            </VerticalStackLayout>
+            </Frame>
 
         </VerticalStackLayout>
     </ScrollView>

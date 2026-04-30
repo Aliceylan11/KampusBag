@@ -22,46 +22,36 @@ public partial class LoginPage : ContentPage
             return;
         }
 
-        // 2. Butonu devre dışı bırak (çift tıklama önleme)
+        // 2. Loading göstergesi
         var loginButton = sender as Button;
         if (loginButton != null)
         {
             loginButton.IsEnabled = false;
-            loginButton.Text = "Giriş yapılıyor..."; // Loading göstergesi
+            loginButton.Text = "Giriş yapılıyor...";
         }
 
         try
         {
-            // 3. API'ye login isteği gönder
             var (success, message) = await _apiService.LoginAsync(
                 IdentifierEntry.Text.Trim(),
-                PasswordEntry.Text
-            );
+                PasswordEntry.Text);
 
             if (success)
             {
-                // 4. Başarılı giriş - Ana sayfaya yönlendir
-                await DisplayAlert("Başarılı", message, "Tamam");
-
-                // Shell navigation ile ana sayfaya geçiş
                 Application.Current.MainPage = new AppShell();
             }
             else
             {
-                // 5. Hatalı giriş - Kullanıcıya bilgi ver
-                await DisplayAlert("Giriş Hatası", message, "Tamam");
-
-                // Şifre alanını temizle (güvenlik)
+                await DisplayAlert("Giriş Başarısız", message, "Tamam");
                 PasswordEntry.Text = string.Empty;
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Hata", $"Beklenmeyen bir hata oluştu: {ex.Message}", "Tamam");
+            await DisplayAlert("Hata", $"Beklenmeyen bir hata: {ex.Message}", "Tamam");
         }
         finally
         {
-            // 6. Butonu tekrar aktif et
             if (loginButton != null)
             {
                 loginButton.IsEnabled = true;
@@ -70,14 +60,14 @@ public partial class LoginPage : ContentPage
         }
     }
 
-    private async void OnRegisterClicked(object sender, EventArgs e)
-    {
-        // Kayıt sayfasına yönlendir
-        await Navigation.PushAsync(new RegisterPage());
-    }
-
+    // GÜNCELLEME: ForgotPasswordPage sayfasına yönlendirme
     private async void OnForgotPasswordClicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new ForgotPasswordPage());
+    }
+
+    private async void OnRegisterClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new RegisterPage());
     }
 }

@@ -15,19 +15,23 @@
                 <Setter Property="Shell.BackgroundColor" Value="#1B305E" />
                 <Setter Property="Shell.ForegroundColor" Value="White" />
                 <Setter Property="Shell.TitleColor" Value="White" />
+                <Setter Property="Shell.TabBarBackgroundColor" Value="White" />
+                <Setter Property="Shell.TabBarTitleColor" Value="#1B305E" />
+                <Setter Property="Shell.TabBarUnselectedColor" Value="#9CA3AF" />
             </Style>
         </ResourceDictionary>
     </Shell.Resources>
 
     <TabBar>
-        <Tab Title="Sohbetler">
+        <Tab Title="Sohbetler" Icon="chat_icon.png">
             <ShellContent ContentTemplate="{DataTemplate chats:ChatListPage}" />
         </Tab>
-        <Tab Title="Derslerim">
+        <Tab Title="Derslerim" Icon="course_icon.png">
             <ShellContent ContentTemplate="{DataTemplate chats:CourseListPage}" />
         </Tab>
-        <Tab Title="Profilim">
+        <Tab Title="Profilim" Icon="profile_icon.png">
             <ShellContent ContentTemplate="{DataTemplate profile:ProfilePage}" />
         </Tab>
     </TabBar>
+
 </Shell>
