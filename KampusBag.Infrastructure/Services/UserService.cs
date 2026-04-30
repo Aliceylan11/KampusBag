@@ -134,4 +134,59 @@ public class UserService : IUserService
 
         return await _userRepository.FindAsync(u => u.FullName.ToLower().Contains(searchTerm.ToLower()));
     }
+
+    // EKLEME YAPILACAK METODLAR - UserService.cs dosyasının SONUNA ekleyin
+
+    // ==================== ŞİFRE SIFIRLAMA METODLARI ====================
+
+    public async Task<string> ForgotPasswordAsync(string email)
+    {
+        // 1. Kullanıcıyı bul
+        var users = await _userRepository.FindAsync(u => u.Email == email);
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+        {
+            // Güvenlik: Email bulunamadı bile dönmeyelim (brute force saldırı önlemi)
+            return "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.";
+        }
+
+        // 2. Yeni doğrulama kodu üret
+        var resetCode = GenerateRandomCode();
+        user.VerificationCode = resetCode;
+        await _userRepository.UpdateAsync(user);
+
+        // 3. E-posta ile kodu gönder
+        await _emailService.SendPasswordResetCodeAsync(user.Email, resetCode);
+
+        return "Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.";
+    }
+
+    public async Task<string> ResetPasswordAsync(string email, string code, string newPassword)
+    {
+        // 1. Kullanıcıyı bul
+        var users = await _userRepository.FindAsync(u => u.Email == email);
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+        {
+            return "Geçersiz e-posta veya doğrulama kodu!";
+        }
+
+        // 2. Doğrulama kodunu kontrol et
+        if (user.VerificationCode != code)
+        {
+            return "Geçersiz e-posta veya doğrulama kodu!";
+        }
+
+        // 3. Yeni şifreyi hashle ve kaydet
+        user.PasswordHash = HashPassword(newPassword);
+        user.VerificationCode = null; // Kodu sıfırla (tekrar kullanılmasın)
+        await _userRepository.UpdateAsync(user);
+
+        return "Şifreniz başarıyla güncellendi! Artık yeni şifrenizle giriş yapabilirsiniz.";
+    }
+
+    
+
 }

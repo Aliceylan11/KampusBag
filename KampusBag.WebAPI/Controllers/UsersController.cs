@@ -121,4 +121,65 @@ public class UsersController : ControllerBase
             return BadRequest(new { message = $"Giriş sırasında bir hata oluştu: {ex.Message}" });
         }
     }
+    // EKLEME YAPILACAK ENDPOINT'LER - UsersController.cs dosyasına ekleyin
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(forgotPasswordDto.Email))
+            {
+                return BadRequest(new { message = "E-posta adresi gereklidir." });
+            }
+
+            var result = await _userService.ForgotPasswordAsync(forgotPasswordDto.Email);
+
+            // Güvenlik: Her zaman aynı mesajı döndür (email enumeration saldırı önlemi)
+            return Ok(new { message = result });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Bir hata oluştu: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(resetPasswordDto.Email) ||
+                string.IsNullOrWhiteSpace(resetPasswordDto.Code) ||
+                string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword))
+            {
+                return BadRequest(new { message = "Tüm alanlar gereklidir." });
+            }
+
+            // Şifre uzunluk kontrolü (minimum 6 karakter)
+            if (resetPasswordDto.NewPassword.Length < 6)
+            {
+                return BadRequest(new { message = "Şifre en az 6 karakter olmalıdır." });
+            }
+
+            var result = await _userService.ResetPasswordAsync(
+                resetPasswordDto.Email,
+                resetPasswordDto.Code,
+                resetPasswordDto.NewPassword
+            );
+
+            if (result.Contains("başarıyla"))
+            {
+                return Ok(new { message = result });
+            }
+
+            return BadRequest(new { message = result });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Bir hata oluştu: {ex.Message}" });
+        }
+    }
+
+    
 }

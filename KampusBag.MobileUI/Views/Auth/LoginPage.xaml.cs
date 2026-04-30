@@ -78,6 +78,6 @@ public partial class LoginPage : ContentPage
 
     private async void OnForgotPasswordClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("Bilgi", "Şifre sıfırlama servisi yakında aktif edilecektir.", "Tamam");
+        await Navigation.PushAsync(new ForgotPasswordPage());
     }
 }
