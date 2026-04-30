@@ -10,4 +10,8 @@ public interface IUserService
     Task<User?> AuthenticateAsync(string identifier, string password);
     Task<IEnumerable<User>> SearchUsersAsync(string searchTerm);
     UserRole DetermineRoleByEmail(string email);
+
+    // YENİ METODLAR - Şifre Sıfırlama
+    Task<string> ForgotPasswordAsync(string email);
+    Task<string> ResetPasswordAsync(string email, string code, string newPassword);
 }

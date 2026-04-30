@@ -127,14 +127,87 @@ public class ApiService
             return (false, $"Bağlantı hatası: {ex.Message}");
         }
     }
+    // EKLEME YAPILACAK METODLAR - ApiService.cs dosyasına ekleyin
 
+    // 4. ŞİFREMİ UNUTTUM - KOD GÖNDERME
+    public async Task<(bool success, string message)> ForgotPasswordAsync(string email)
+    {
+        try
+        {
+            var forgotPasswordDto = new { Email = email };
+
+            var response = await _httpClient.PostAsJsonAsync("users/forgot-password", forgotPasswordDto);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<MessageResponse>();
+                return (true, result?.Message ?? "Şifre sıfırlama kodu e-posta adresinize gönderildi.");
+            }
+
+            try
+            {
+                var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                return (false, errorResponse?.Message ?? "Bir hata oluştu");
+            }
+            catch
+            {
+                return (false, "E-posta gönderiminde bir sorun oluştu");
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}");
+        }
+    }
+
+    // 5. ŞİFRE SIFIRLAMA - YENİ ŞİFRE KAYDETME
+    public async Task<(bool success, string message)> ResetPasswordAsync(string email, string code, string newPassword)
+    {
+        try
+        {
+            var resetPasswordDto = new
+            {
+                Email = email,
+                Code = code,
+                NewPassword = newPassword
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("users/reset-password", resetPasswordDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<MessageResponse>();
+                return (true, result?.Message ?? "Şifreniz başarıyla güncellendi!");
+            }
+
+            try
+            {
+                var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                return (false, errorResponse?.Message ?? "Şifre sıfırlama başarısız");
+            }
+            catch
+            {
+                return (false, "Geçersiz kod veya e-posta");
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}");
+        }
+    }
+
+    // YENİ HELPER CLASS (Backend response modelleri bölümüne ekleyin)
+    private class MessageResponse
+    {
+        public string Message { get; set; }
+    }
     // Backend response modelleri
     private class LoginResponse
     {
         public string Message { get; set; }
         public UserInfo User { get; set; }
     }
-
     private class UserInfo
     {
         public Guid Id { get; set; }
@@ -143,9 +216,10 @@ public class ApiService
         public string RegistrationNumber { get; set; }
         public int Role { get; set; }
     }
-
     private class ErrorResponse
     {
         public string Message { get; set; }
     }
+
+
 }
