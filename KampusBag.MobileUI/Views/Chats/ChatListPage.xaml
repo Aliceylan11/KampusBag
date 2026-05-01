@@ -1,40 +1,447 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:chats="clr-namespace:KampusBag.MobileUI.Views.Chats" 
              x:Class="KampusBag.MobileUI.Views.Chats.ChatListPage"
-             Title="Sohbetler"
-             BackgroundColor="#F5F5F5">
-
+             Title="KampusBag"
+             BackgroundColor="{AppThemeBinding Light=#F0F2F5, Dark=#0D1117}">
+    
+    <!-- Toolbar: Yeni Sohbet -->
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Ekle" Clicked="OnAddChatClicked" />
+        <ToolbarItem Text="✏️" Clicked="OnNewChatClicked"/>
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto, *">
 
-        <SearchBar Grid.Row="0" Placeholder="Sohbetlerde ara..." Margin="10" />
+        <!-- ── ARAMA BARI ── -->
+        <Frame Grid.Row="0"
+               Margin="16,12,16,4"
+               Padding="0"
+               CornerRadius="14"
+               BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+               BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}">
+            <SearchBar x:Name="GlobalSearchBar"
+                       Placeholder="Sohbetlerde ara..."
+                       PlaceholderColor="#9CA3AF"
+                       TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                       BackgroundColor="Transparent"
+                       HeightRequest="46"
+                       TextChanged="OnSearchTextChanged"/>
+        </Frame>
 
-        <CollectionView Grid.Row="1" x:Name="ChatsCollection" Margin="0,5">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Padding="15,10" ColumnDefinitions="Auto, *, Auto">
+        <!-- ── ANA İÇERİK: KATEGORİLER ── -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="0" Padding="0,8,0,24">
 
-                        <Frame Grid.Column="0" 
-                               WidthRequest="55" HeightRequest="55" 
-                               CornerRadius="27.5" 
-                               Padding="0" 
-                               BackgroundColor="#1B305E">
-                            <Label Text="A" VerticalOptions="Center" HorizontalOptions="Center" TextColor="White" FontSize="20" />
-                        </Frame>
+                <!-- ══════════════════════════════════════
+                     KATEGORİ A — RESMİ KANALLAR
+                     Kilitli · Yalnızca yetkili yazar
+                ══════════════════════════════════════ -->
+                <VerticalStackLayout x:Name="OfficialSection" Spacing="0">
 
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="15,0">
-                            <Label Text="Ders Adı / Kişi" FontAttributes="Bold" FontSize="16" TextColor="Black" />
-                            <Label Text="Son mesaj buraya gelecek..." FontSize="13" TextColor="Gray" MaxLines="1" />
-                        </VerticalStackLayout>
-
-                        <Label Grid.Column="2" Text="12:45" FontSize="11" TextColor="Gray" VerticalOptions="Center" />
+                    <!-- Bölüm Başlığı -->
+                    <Grid ColumnDefinitions="Auto, *, Auto"
+                          Padding="20,18,20,10">
+                        <HorizontalStackLayout Grid.Column="0" Spacing="8">
+                            <Label Text="🏛️" FontSize="15"/>
+                            <Label Text="RESMİ KANALLAR"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}"
+                                   CharacterSpacing="1"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                        <Label Grid.Column="2"
+                               x:Name="OfficialCountLabel"
+                               Text="0"
+                               FontSize="11"
+                               TextColor="White"
+                               BackgroundColor="#1B305E"
+                               Padding="6,2"
+                               VerticalOptions="Center"/>
                     </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+
+                    <!-- Kanal Listesi -->
+                    <CollectionView x:Name="OfficialChannelsList"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="chats:ChatItem">
+                                <Grid>
+                                    <Frame Margin="12,3,12,3"
+                                           Padding="0"
+                                           CornerRadius="14"
+                                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#1F2937}"
+                                           BackgroundColor="{AppThemeBinding Light=White, Dark=#161B22}"
+                                           HasShadow="False">
+                                        <Grid ColumnDefinitions="Auto, *, Auto"
+                                              Padding="14,14,14,14"
+                                              ColumnSpacing="14">
+
+                                            <!-- Kilit / Bina İkonu -->
+                                            <Frame Grid.Column="0"
+                                                   WidthRequest="50" HeightRequest="50"
+                                                   CornerRadius="14"
+                                                   Padding="0"
+                                                   BackgroundColor="#EEF2FF"
+                                                   BorderColor="Transparent">
+                                                <Label Text="{Binding Icon}"
+                                                       FontSize="24"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"/>
+                                            </Frame>
+
+                                            <!-- Kanal Adı + Son Mesaj -->
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="3">
+                                                <HorizontalStackLayout Spacing="8">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                                           MaxLines="1"/>
+                                                    <!-- Kilit etiketi -->
+                                                    <Frame Padding="5,2"
+                                                           CornerRadius="6"
+                                                           BackgroundColor="#FEF3C7"
+                                                           BorderColor="#FDE68A"
+                                                           IsVisible="{Binding IsLocked}">
+                                                        <Label Text="🔒 Kilitli"
+                                                               FontSize="10"
+                                                               TextColor="#92400E"/>
+                                                    </Frame>
+                                                </HorizontalStackLayout>
+                                                <Label Text="{Binding LastMessage}"
+                                                       FontSize="13"
+                                                       TextColor="#6B7280"
+                                                       MaxLines="1"/>
+                                            </VerticalStackLayout>
+
+                                            <!-- Sağ: Saat + Okunmamış -->
+                                            <VerticalStackLayout Grid.Column="2"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="5"
+                                                                 HorizontalOptions="End">
+                                                <Label Text="{Binding TimeText}"
+                                                       FontSize="11"
+                                                       TextColor="#9CA3AF"
+                                                       HorizontalOptions="End"/>
+                                                <Frame Padding="6,3"
+                                                       CornerRadius="10"
+                                                       BackgroundColor="#1B305E"
+                                                       BorderColor="Transparent"
+                                                       HorizontalOptions="End"
+                                                       IsVisible="{Binding HasUnread}">
+                                                    <Label Text="{Binding UnreadCount}"
+                                                           FontSize="11"
+                                                           TextColor="White"
+                                                           FontAttributes="Bold"/>
+                                                </Frame>
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+                                    </Frame>
+
+                                    <!-- Tiklama katmanı -->
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            CommandParameter="{Binding .}"
+                                            Tapped="OnChannelTapped"/>
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+
+                <!-- ══════════════════════════════════════
+                     KATEGORİ B — ÇALIŞMA ODALARI
+                     Açık grup · Herkes yazabilir
+                ══════════════════════════════════════ -->
+                <VerticalStackLayout x:Name="StudySection" Spacing="0" Margin="0,12,0,0">
+
+                    <Grid ColumnDefinitions="Auto, *, Auto"
+                          Padding="20,18,20,10">
+                        <HorizontalStackLayout Grid.Column="0" Spacing="8">
+                            <Label Text="📚" FontSize="15"/>
+                            <Label Text="ÇALIŞMA ODALARI"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}"
+                                   CharacterSpacing="1"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                        <Label Grid.Column="2"
+                               x:Name="StudyCountLabel"
+                               Text="0"
+                               FontSize="11"
+                               TextColor="White"
+                               BackgroundColor="#059669"
+                               Padding="6,2"
+                               VerticalOptions="Center"/>
+                    </Grid>
+
+                    <CollectionView x:Name="StudyRoomsList"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="chats:ChatItem">
+                                <Grid>
+                                    <Frame Margin="12,3,12,3"
+                                           Padding="0"
+                                           CornerRadius="14"
+                                           BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#1F2937}"
+                                           BackgroundColor="{AppThemeBinding Light=White, Dark=#161B22}"
+                                           HasShadow="False">
+                                        <Grid ColumnDefinitions="Auto, *, Auto"
+                                              Padding="14,14,14,14"
+                                              ColumnSpacing="14">
+
+                                            <!-- Grup İkonu -->
+                                            <Frame Grid.Column="0"
+                                                   WidthRequest="50" HeightRequest="50"
+                                                   CornerRadius="14"
+                                                   Padding="0"
+                                                   BackgroundColor="#ECFDF5"
+                                                   BorderColor="Transparent">
+                                                <Label Text="{Binding Icon}"
+                                                       FontSize="24"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"/>
+                                            </Frame>
+
+                                            <!-- Oda Adı + Son Mesaj -->
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="3">
+                                                <HorizontalStackLayout Spacing="8">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                                           MaxLines="1"/>
+                                                    <!-- Üye Sayısı -->
+                                                    <Label Text="{Binding MemberCountText}"
+                                                           FontSize="11"
+                                                           TextColor="#6B7280"
+                                                           VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
+                                                <Label Text="{Binding LastMessage}"
+                                                       FontSize="13"
+                                                       TextColor="#6B7280"
+                                                       MaxLines="1"/>
+                                            </VerticalStackLayout>
+
+                                            <!-- Sağ: Saat + Okunmamış -->
+                                            <VerticalStackLayout Grid.Column="2"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="5"
+                                                                 HorizontalOptions="End">
+                                                <Label Text="{Binding TimeText}"
+                                                       FontSize="11"
+                                                       TextColor="#9CA3AF"
+                                                       HorizontalOptions="End"/>
+                                                <Frame Padding="6,3"
+                                                       CornerRadius="10"
+                                                       BackgroundColor="#059669"
+                                                       BorderColor="Transparent"
+                                                       HorizontalOptions="End"
+                                                       IsVisible="{Binding HasUnread}">
+                                                    <Label Text="{Binding UnreadCount}"
+                                                           FontSize="11"
+                                                           TextColor="White"
+                                                           FontAttributes="Bold"/>
+                                                </Frame>
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+                                    </Frame>
+
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            CommandParameter="{Binding .}"
+                                            Tapped="OnChannelTapped"/>
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+
+                <!-- ══════════════════════════════════════
+                     KATEGORİ C — ÖZEL MESAJLAR
+                     DM · Sessiz Mod + Acil Hak göstergesi
+                ══════════════════════════════════════ -->
+                <VerticalStackLayout x:Name="PrivateSection" Spacing="0" Margin="0,12,0,0">
+
+                    <Grid ColumnDefinitions="Auto, *, Auto"
+                          Padding="20,18,20,10">
+                        <HorizontalStackLayout Grid.Column="0" Spacing="8">
+                            <Label Text="💬" FontSize="15"/>
+                            <Label Text="ÖZEL MESAJLAR"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}"
+                                   CharacterSpacing="1"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                        <Label Grid.Column="2"
+                               x:Name="PrivateCountLabel"
+                               Text="0"
+                               FontSize="11"
+                               TextColor="White"
+                               BackgroundColor="#7C3AED"
+                               Padding="6,2"
+                               VerticalOptions="Center"/>
+                    </Grid>
+
+                    <CollectionView x:Name="PrivateMessagesList"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="chats:ChatItem">
+                                <Grid>
+                                    <Frame Margin="12,3,12,3"
+                                           Padding="0"
+                                           CornerRadius="14"
+                                           BorderColor="{Binding SilentModeBorderColor}"
+                                           BackgroundColor="{AppThemeBinding Light=White, Dark=#161B22}"
+                                           HasShadow="False">
+                                        <Grid ColumnDefinitions="Auto, *, Auto"
+                                              Padding="14,14,14,14"
+                                              ColumnSpacing="14">
+
+                                            <!-- Avatar Çemberi -->
+                                            <Grid Grid.Column="0" WidthRequest="50" HeightRequest="50">
+                                                <Frame WidthRequest="50" HeightRequest="50"
+                                                       CornerRadius="25"
+                                                       Padding="0"
+                                                       BackgroundColor="{Binding AvatarColor}"
+                                                       BorderColor="Transparent">
+                                                    <Label Text="{Binding AvatarInitial}"
+                                                           FontSize="20"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"/>
+                                                </Frame>
+                                                <!-- Çevrimiçi nokta -->
+                                                <Frame WidthRequest="14" HeightRequest="14"
+                                                       CornerRadius="7" Padding="0"
+                                                       BackgroundColor="#22C55E"
+                                                       BorderColor="White"
+                                                       HorizontalOptions="End"
+                                                       VerticalOptions="End"
+                                                       IsVisible="{Binding IsOnline}"/>
+                                            </Grid>
+
+                                            <!-- Kullanıcı Adı + Önizleme -->
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="3">
+                                                <HorizontalStackLayout Spacing="8">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                                           MaxLines="1"/>
+                                                    <!-- Akademisyen için Sessiz Mod etiketi -->
+                                                    <Frame Padding="5,2"
+                                                           CornerRadius="6"
+                                                           BackgroundColor="#FEF2F2"
+                                                           BorderColor="#FECACA"
+                                                           IsVisible="{Binding IsSilentMode}">
+                                                        <Label Text="🔴 Sessiz Mod"
+                                                               FontSize="10"
+                                                               TextColor="#DC2626"/>
+                                                    </Frame>
+                                                    <!-- Rol etiketi -->
+                                                    <Frame Padding="5,2"
+                                                           CornerRadius="6"
+                                                           BackgroundColor="#EFF6FF"
+                                                           BorderColor="#BFDBFE"
+                                                           IsVisible="{Binding IsAcademic}">
+                                                        <Label Text="👨‍🏫 Hoca"
+                                                               FontSize="10"
+                                                               TextColor="#1D4ED8"/>
+                                                    </Frame>
+                                                </HorizontalStackLayout>
+                                                <Label Text="{Binding LastMessage}"
+                                                       FontSize="13"
+                                                       TextColor="#6B7280"
+                                                       MaxLines="1"/>
+                                            </VerticalStackLayout>
+
+                                            <!-- Sağ: Saat + Okunmamış + Acil -->
+                                            <VerticalStackLayout Grid.Column="2"
+                                                                 VerticalOptions="Center"
+                                                                 Spacing="5"
+                                                                 HorizontalOptions="End">
+                                                <Label Text="{Binding TimeText}"
+                                                       FontSize="11"
+                                                       TextColor="#9CA3AF"
+                                                       HorizontalOptions="End"/>
+                                                <!-- Normal okunmamış -->
+                                                <Frame Padding="6,3"
+                                                       CornerRadius="10"
+                                                       BackgroundColor="#7C3AED"
+                                                       BorderColor="Transparent"
+                                                       HorizontalOptions="End"
+                                                       IsVisible="{Binding HasUnread}">
+                                                    <Label Text="{Binding UnreadCount}"
+                                                           FontSize="11"
+                                                           TextColor="White"
+                                                           FontAttributes="Bold"/>
+                                                </Frame>
+                                                <!-- Acil Durum Göstergesi -->
+                                                <Frame Padding="5,2"
+                                                       CornerRadius="8"
+                                                       BackgroundColor="#D32F2F"
+                                                       BorderColor="Transparent"
+                                                       HorizontalOptions="End"
+                                                       IsVisible="{Binding HasEmergency}">
+                                                    <Label Text="🚨"
+                                                           FontSize="12"
+                                                           HorizontalOptions="Center"/>
+                                                </Frame>
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+                                    </Frame>
+
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            CommandParameter="{Binding .}"
+                                            Tapped="OnPrivateChatTapped"/>
+                                    </Grid.GestureRecognizers>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+
+                <!-- Boş liste durumu -->
+                <VerticalStackLayout x:Name="EmptyStateView"
+                                     IsVisible="False"
+                                     HorizontalOptions="Center"
+                                     Margin="0,60,0,0"
+                                     Spacing="12">
+                    <Label Text="💬" FontSize="52" HorizontalOptions="Center"/>
+                    <Label Text="Henüz sohbet yok"
+                           FontSize="18" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#374151, Dark=White}"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Yeni bir sohbet başlatmak için sağ üstteki ✏️ ikonuna dokun."
+                           FontSize="13"
+                           TextColor="#9CA3AF"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"
+                           Margin="30,0"/>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
     </Grid>
 </ContentPage>

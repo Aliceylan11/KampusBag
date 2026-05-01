@@ -4,54 +4,67 @@ namespace KampusBag.MobileUI.Views.Chats;
 
 public partial class ChatDetailPage : ContentPage
 {
-    // Mesajları tutacak olan dinamik liste. 
-    // Bu listeye ekleme yapıldığında CollectionView otomatik olarak güncellenir.
     public ObservableCollection<string> Messages { get; set; }
 
-    public ChatDetailPage(bool isPrivateWithTeacher)
+    private readonly bool _isReadOnly;
+
+    // GÜNCELLEME: chatName ve isReadOnly parametreleri eklendi
+    public ChatDetailPage(
+        bool isPrivateWithTeacher,
+        string chatName = "Sohbet",
+        bool isReadOnly = false)
     {
         InitializeComponent();
 
-        // Listeyi başlatıyoruz
         Messages = new ObservableCollection<string>();
+        _isReadOnly = isReadOnly;
 
-        // XAML tarafındaki MessagesList isimli CollectionView'a bu listeyi bağlıyoruz
         MessagesList.ItemsSource = Messages;
+        Title = chatName;
 
-        // Eğer bu sohbet bir Hoca ile ise kırmızı butonu göster
-        EmergencyButton.IsVisible = isPrivateWithTeacher;
+        // Acil buton: Sadece Akademisyen ile özel sohbette göster
+        EmergencyButton.IsVisible = isPrivateWithTeacher && !isReadOnly;
+
+        // Salt okunur mod: Giriş alanını ve gönder butonunu kilitle
+        if (isReadOnly)
+        {
+            MessageEntry.IsEnabled = false;
+            MessageEntry.Placeholder = "Bu kanal sadece okunabilir 🔒";
+            MessageEntry.BackgroundColor = Color.FromArgb("#F3F4F6");
+        }
     }
 
-    // Mesaj Gönderme Butonu (➤)
     private async void OnSendMessageClicked(object sender, EventArgs e)
     {
+        if (_isReadOnly) return;
         if (string.IsNullOrWhiteSpace(MessageEntry.Text)) return;
 
-        // Mesajı ekrana (ObservableCollection'a) ekle
         Messages.Add(MessageEntry.Text);
-
-        // Kutuyu temizle
         MessageEntry.Text = string.Empty;
 
-        // En alta kaydır (WhatsApp stili)
         if (Messages.Count > 0)
             MessagesList.ScrollTo(Messages.Count - 1);
     }
 
-    // ACİL DURUM BUTONU (🚨)
     private async void OnEmergencyClicked(object sender, EventArgs e)
     {
-        bool answer = await DisplayAlert("Acil Durum",
-            "Bu mesaj 1 hakkınızı tüketecektir. Emin misiniz?", "Evet", "Vazgeç");
+        bool answer = await DisplayAlert(
+            "🚨 Acil Durum",
+            "Bu mesaj 1 acil hakkınızı tüketecektir. Emin misiniz?",
+            "Evet, Gönder",
+            "Vazgeç");
 
-        if (answer)
-        {
-            // Mesaj kutusundaki metni acil durum mesajı olarak ekle
-            string emergencyMsg = "🚨 ACİL: " + (string.IsNullOrWhiteSpace(MessageEntry.Text) ? "Acil durum bildirimi!" : MessageEntry.Text);
-            Messages.Add(emergencyMsg);
+        if (!answer) return;
 
-            await DisplayAlert("Bilgi", "Acil durum mesajı hoca paneline iletildi!", "Tamam");
-            MessageEntry.Text = string.Empty;
-        }
+        string emergencyMsg = "🚨 ACİL: " +
+            (string.IsNullOrWhiteSpace(MessageEntry.Text)
+                ? "Acil durum bildirimi!"
+                : MessageEntry.Text);
+
+        Messages.Add(emergencyMsg);
+        MessageEntry.Text = string.Empty;
+
+        await DisplayAlert("✅ Gönderildi",
+            "Acil mesajınız hocanın paneline iletildi.", "Tamam");
     }
 }
