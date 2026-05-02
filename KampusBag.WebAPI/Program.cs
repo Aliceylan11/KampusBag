@@ -3,60 +3,62 @@ using KampusBag.Infrastructure.Persistence;
 using KampusBag.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace KampusBag.WebAPI
+namespace KampusBag.WebAPI;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        // ── Veritabanı ────────────────────────────────────────────────
+        builder.Services.AddDbContext<KampusBagDbContext>(options =>
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        // ── Repository ───────────────────────────────────────────────
+        builder.Services.AddScoped(
+            typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+        // ── Servisler ────────────────────────────────────────────────
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddScoped<IMessageService, MessageService>();  // YENİ
+
+        // ── Otomatik Migration ───────────────────────────────────────
+        var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
         {
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
-            var builder = WebApplication.CreateBuilder(args);
-
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            builder.Services.AddDbContext<KampusBagDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IMessageService, MessageService>();
-
-            builder.Services.AddScoped<IEmailService, EmailService>();
-
-            var app = builder.Build();
-
-            // ==============================================================
-            // MIGRATION KODU BURADA, YANİ PIPELINE AYARLARINDAN ÖNCE OLMALI!
-            // ==============================================================
-            using (var scope = app.Services.CreateScope())
+            try
             {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var context = services.GetRequiredService<KampusBagDbContext>();
-                    context.Database.Migrate(); // Veritabanı ve tabloları oluştur
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Veritabanı oluşturulurken hata: " + ex.Message);
-                }
+                var ctx = scope.ServiceProvider
+                    .GetRequiredService<KampusBagDbContext>();
+                ctx.Database.Migrate();
             }
-            // ==============================================================
-
-            if (app.Environment.IsDevelopment())
+            catch (Exception ex)
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                Console.WriteLine("Migration hatası: " + ex.Message);
             }
-
-            app.UseHttpsRedirection();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            app.Run();
         }
+
+        // ── Middleware ────────────────────────────────────────────────
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+        app.UseAuthorization();
+        app.MapControllers();
+
+        app.Run();
     }
 }
