@@ -207,4 +207,39 @@ public class MessagesController : ControllerBase
 
         return Ok(new { message = "🚨 Acil mesaj başarıyla iletildi." });
     }
+    // MessagesController.cs dosyasına eklenecek endpoint
+    // Sohbete girildiğinde mesajları okundu işaretler
+
+
+     // PATCH api/messages/read
+    // Sohbete girilince mesajları okundu işaretle
+     [HttpPatch("read")]
+    public async Task<IActionResult> MarkAsRead(
+        [FromQuery] Guid userId,
+        [FromQuery] Guid? senderId = null,   // Özel mesaj için
+        [FromQuery] Guid? courseId = null)   // Grup mesajı için
+    {
+        if (userId == Guid.Empty)
+            return BadRequest(new { message = "userId zorunludur." });
+
+        if (senderId == null && courseId == null)
+            return BadRequest(new { message = "senderId veya courseId gereklidir." });
+
+        try
+        {
+            int updated = await _messageService.MarkMessagesAsReadAsync(
+                userId, senderId, courseId);
+
+            return Ok(new
+            {
+                message = $"{updated} mesaj okundu olarak işaretlendi.",
+                count = updated
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 }
