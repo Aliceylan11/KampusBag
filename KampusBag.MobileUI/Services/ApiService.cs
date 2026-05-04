@@ -1,27 +1,27 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using KampusBag.Core.DTOs;
-
+using KampusBag.MobileUI.Models;
 namespace KampusBag.MobileUI.Services;
 
 public class ApiService
 {
     private readonly HttpClient _httpClient;
+    private readonly EncryptionService _encryption = new();
 
-    // Platforma göre API adresini otomatik belirleyen sihirli blok:
 #if ANDROID
-    // Android Emülatör için özel IP
     private const string BaseUrl = "http://10.0.2.2:5178/api/";
 #else
-    // Windows Machine, iOS ve Mac için standart Localhost
     private const string BaseUrl = "http://localhost:5178/api/";
 #endif
 
-    // YENİ EKLEME: Basit Session yönetimi (static)
+    // ── Session ────────────────────────────────────────────────────────
     public static class Session
     {
         public static Guid UserId { get; set; }
-        public static string Email { get; set; }
-        public static string FullName { get; set; }
+        public static string Email { get; set; } = string.Empty;
+        public static string FullName { get; set; } = string.Empty;
         public static int Role { get; set; }
         public static bool IsLoggedIn { get; set; }
 
@@ -37,189 +37,390 @@ public class ApiService
 
     public ApiService()
     {
-        // Adresi elle yazmak yerine yukarıdaki BaseUrl değişkenini çekiyoruz
-        _httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl) };
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(BaseUrl),
+            Timeout = TimeSpan.FromSeconds(15)
+        };
     }
 
-    // 1. KAYIT OLMA METODU
-    public async Task<bool> RegisterAsync(UserRegisterDto registerDto)
+    // ══════════════════════════════════════════════════════════════════
+    // AUTH METODLARI
+    // ══════════════════════════════════════════════════════════════════
+
+    public async Task<bool> RegisterAsync(UserRegisterDto dto)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("users/register", registerDto);
+            var response = await _httpClient.PostAsJsonAsync("users/register", dto);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
-        {
-            return false;
-        }
+        catch { return false; }
     }
 
-    // 2. EMAIL DOĞRULAMA METODU
     public async Task<string> VerifyEmailAsync(string email, string code)
     {
         try
         {
-            var response = await _httpClient.PostAsync($"users/verify?email={email}&code={code}", null);
-            var result = await response.Content.ReadAsStringAsync();
-
-            return result;
+            var response = await _httpClient
+                .PostAsync($"users/verify?email={email}&code={code}", null);
+            return await response.Content.ReadAsStringAsync();
         }
-        catch (Exception ex)
-        {
-            return $"Hata: {ex.Message}";
-        }
+        catch (Exception ex) { return $"Hata: {ex.Message}"; }
     }
 
-    // 3. YENİ EKLEME: LOGIN METODU
-    public async Task<(bool success, string message)> LoginAsync(string identifier, string password)
+    public async Task<(bool success, string message)> LoginAsync(
+        string identifier, string password)
     {
         try
         {
-            // Login DTO'sunu hazırlıyoruz
-            var loginDto = new UserLoginDto
-            {
-                Identifier = identifier,
-                Password = password
-            };
-
-            // Backend'e POST isteği gönderiyoruz
-            var response = await _httpClient.PostAsJsonAsync("users/login", loginDto);
-
-            // Response içeriğini okuyoruz
+            var dto = new UserLoginDto { Identifier = identifier, Password = password };
+            var response = await _httpClient.PostAsJsonAsync("users/login", dto);
             var content = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
-                // Başarılı giriş - JSON'ı parse ediyoruz
-                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                var parsed = JsonSerializer.Deserialize<LoginResponse>(
+                    content, _jsonOptions);
 
-                if (loginResponse?.User != null)
+                if (parsed?.User != null)
                 {
-                    // Session'a kullanıcı bilgilerini kaydediyoruz
-                    Session.UserId = loginResponse.User.Id;
-                    Session.Email = loginResponse.User.Email;
-                    Session.FullName = loginResponse.User.FullName;
-                    Session.Role = loginResponse.User.Role;
+                    Session.UserId = parsed.User.Id;
+                    Session.Email = parsed.User.Email;
+                    Session.FullName = parsed.User.FullName;
+                    Session.Role = parsed.User.Role;
                     Session.IsLoggedIn = true;
-
-                    return (true, loginResponse.Message ?? "Giriş başarılı!");
-                }
-
-                return (false, "Kullanıcı bilgileri alınamadı");
-            }
-            else
-            {
-                // Hatalı giriş - Backend'den gelen error mesajını parse et
-                try
-                {
-                    var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    return (false, errorResponse?.Message ?? "Giriş başarısız");
-                }
-                catch
-                {
-                    return (false, "Hatalı kullanıcı adı veya şifre!");
+                    return (true, parsed.Message ?? "Giriş başarılı!");
                 }
             }
+
+            var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
+            return (false, err?.Message ?? "Giriş başarısız.");
         }
-        catch (Exception ex)
-        {
-            return (false, $"Bağlantı hatası: {ex.Message}");
-        }
+        catch (Exception ex) { return (false, $"Bağlantı hatası: {ex.Message}"); }
     }
-    // EKLEME YAPILACAK METODLAR - ApiService.cs dosyasına ekleyin
 
-    // 4. ŞİFREMİ UNUTTUM - KOD GÖNDERME
     public async Task<(bool success, string message)> ForgotPasswordAsync(string email)
     {
         try
         {
-            var forgotPasswordDto = new { Email = email };
-
-            var response = await _httpClient.PostAsJsonAsync("users/forgot-password", forgotPasswordDto);
-            var content = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<MessageResponse>();
-                return (true, result?.Message ?? "Şifre sıfırlama kodu e-posta adresinize gönderildi.");
-            }
-
-            try
-            {
-                var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                return (false, errorResponse?.Message ?? "Bir hata oluştu");
-            }
-            catch
-            {
-                return (false, "E-posta gönderiminde bir sorun oluştu");
-            }
+            var response = await _httpClient
+                .PostAsJsonAsync("users/forgot-password", new { Email = email });
+            var result = JsonSerializer.Deserialize<MessageResponse>(
+                await response.Content.ReadAsStringAsync(), _jsonOptions);
+            return (response.IsSuccessStatusCode,
+                    result?.Message ?? "İşlem tamamlandı.");
         }
-        catch (Exception ex)
-        {
-            return (false, $"Bağlantı hatası: {ex.Message}");
-        }
+        catch (Exception ex) { return (false, $"Bağlantı hatası: {ex.Message}"); }
     }
 
-    // 5. ŞİFRE SIFIRLAMA - YENİ ŞİFRE KAYDETME
-    public async Task<(bool success, string message)> ResetPasswordAsync(string email, string code, string newPassword)
+    public async Task<(bool success, string message)> ResetPasswordAsync(
+        string email, string code, string newPassword)
     {
         try
         {
-            var resetPasswordDto = new
+            var response = await _httpClient.PostAsJsonAsync(
+                "users/reset-password",
+                new { Email = email, Code = code, NewPassword = newPassword });
+            var result = JsonSerializer.Deserialize<MessageResponse>(
+                await response.Content.ReadAsStringAsync(), _jsonOptions);
+            return (response.IsSuccessStatusCode,
+                    result?.Message ?? "İşlem tamamlandı.");
+        }
+        catch (Exception ex) { return (false, $"Bağlantı hatası: {ex.Message}"); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CHAT LİSTE & GEÇMİŞ
+    // ══════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Kullanıcının tüm sohbet özetlerini getirir.
+    /// Son mesajları otomatik olarak AES-256 ile çözer.
+    /// </summary>
+    public async Task<ChatListResult> GetChatListAsync(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"messages/chats/{userId}");
+
+            if (!response.IsSuccessStatusCode)
+                return ChatListResult.Fail("Sohbet listesi alınamadı.");
+
+            var content = await response.Content.ReadAsStringAsync();
+            var parsed = JsonSerializer.Deserialize<ChatListResponse>(content, _jsonOptions);
+
+            return new ChatListResult
             {
-                Email = email,
-                Code = code,
-                NewPassword = newPassword
+                Success = true,
+                OfficialChannels = DecryptList(parsed?.OfficialChannels),
+                StudyRooms = DecryptList(parsed?.StudyRooms),
+                PrivateMessages = DecryptList(parsed?.PrivateMessages),
             };
-
-            var response = await _httpClient.PostAsJsonAsync("users/reset-password", resetPasswordDto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<MessageResponse>();
-                return (true, result?.Message ?? "Şifreniz başarıyla güncellendi!");
-            }
-
-            try
-            {
-                var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                return (false, errorResponse?.Message ?? "Şifre sıfırlama başarısız");
-            }
-            catch
-            {
-                return (false, "Geçersiz kod veya e-posta");
-            }
         }
         catch (Exception ex)
         {
-            return (false, $"Bağlantı hatası: {ex.Message}");
+            return ChatListResult.Fail($"Bağlantı hatası: {ex.Message}");
         }
     }
 
-    // YENİ HELPER CLASS (Backend response modelleri bölümüne ekleyin)
-    private class MessageResponse
+    /// <summary>
+    /// Belirli bir sohbetin mesaj geçmişini getirir.
+    /// </summary>
+    public async Task<(bool success, List<MessageModel> messages, string error)>
+        GetChatHistoryAsync(Guid userId, Guid? otherUserId, Guid? courseId)
     {
-        public string Message { get; set; }
-    }
-    // Backend response modelleri
-    private class LoginResponse
-    {
-        public string Message { get; set; }
-        public UserInfo User { get; set; }
-    }
-    private class UserInfo
-    {
-        public Guid Id { get; set; }
-        public string Email { get; set; }
-        public string FullName { get; set; }
-        public string RegistrationNumber { get; set; }
-        public int Role { get; set; }
-    }
-    private class ErrorResponse
-    {
-        public string Message { get; set; }
+        try
+        {
+            string query = otherUserId.HasValue
+                ? $"messages/history?userId={userId}&otherUserId={otherUserId}"
+                : $"messages/history?userId={userId}&courseId={courseId}";
+
+            var response = await _httpClient.GetAsync(query);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
+                return (false, new(), err?.Message ?? "Geçmiş alınamadı.");
+            }
+
+            var parsed = JsonSerializer.Deserialize<HistoryResponse>(content, _jsonOptions);
+            var messages = (parsed?.Data ?? new())
+                .Select(m =>
+                {
+                    m.Content = _encryption.Decrypt(m.Content);
+                    return m;
+                })
+                .OrderBy(m => m.SentAt)
+                .ToList();
+
+            return (true, messages, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (false, new(), $"Bağlantı hatası: {ex.Message}");
+        }
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // MESAJ GÖNDER — 422 Acil Hak Yönetimi
+    // ══════════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// Mesaj gönderir. 422 hatası → acil hak bitti uyarısı.
+    /// İçeriği şifreleyerek gönderir.
+    /// </summary>
+    public async Task<SendMessageResult> SendMessageAsync(
+        Guid? receiverId,
+        Guid? courseId,
+        string content,
+        bool isEmergency = false)
+    {
+        try
+        {
+            // İçeriği şifrele
+            string encrypted = _encryption.Encrypt(content);
+
+            var dto = new
+            {
+                SenderId = Session.UserId,
+                ReceiverId = receiverId,
+                CourseId = courseId,
+                Content = encrypted,
+                IsEmergency = isEmergency
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("messages/send", dto);
+            var body = await response.Content.ReadAsStringAsync();
+
+            // ── 200 OK ──────────────────────────────────────────────
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<SendMessageResponse>(
+                    body, _jsonOptions);
+
+                return new SendMessageResult
+                {
+                    Success = true,
+                    Message = result?.Data,
+                    StatusMsg = result?.Message ?? "Gönderildi."
+                };
+            }
+
+            // ── 422 Unprocessable: Acil hak bitti ───────────────────
+            if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            {
+                var err = JsonSerializer.Deserialize<ErrorResponse>(body, _jsonOptions);
+                return new SendMessageResult
+                {
+                    Success = false,
+                    IsRightsDepleted = true,
+                    StatusMsg = err?.Message
+                                    ?? "Acil mesaj hakkınız doldu. Bu dönem için 3 hakkınızı kullandınız."
+                };
+            }
+
+            // ── 403 Forbidden: Yetkisiz kanal ───────────────────────
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return new SendMessageResult
+                {
+                    Success = false,
+                    StatusMsg = "Bu kanala mesaj gönderme yetkiniz yok."
+                };
+            }
+
+            // ── Diğer hatalar ────────────────────────────────────────
+            var genericErr = JsonSerializer.Deserialize<ErrorResponse>(body, _jsonOptions);
+            return new SendMessageResult
+            {
+                Success = false,
+                StatusMsg = genericErr?.Message ?? "Mesaj gönderilemedi."
+            };
+        }
+        catch (TaskCanceledException)
+        {
+            return new SendMessageResult
+            {
+                Success = false,
+                StatusMsg = "Sunucu yanıt vermiyor. Bağlantınızı kontrol edin."
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SendMessageResult
+            {
+                Success = false,
+                StatusMsg = $"Bağlantı hatası: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Kalan acil mesaj hakkını getirir.
+    /// </summary>
+    public async Task<(bool success, int remaining)> GetEmergencyRightsAsync(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"messages/rights/{userId}");
+            if (!response.IsSuccessStatusCode) return (false, 0);
+
+            var parsed = JsonSerializer.Deserialize<RightsResponse>(
+                await response.Content.ReadAsStringAsync(), _jsonOptions);
+
+            return (true, parsed?.Remaining ?? 0);
+        }
+        catch { return (false, 0); }
+    }
+
+    /// <summary>
+    /// Sohbete girilince mesajları okundu işaretler.
+    /// </summary>
+    public async Task MarkAsReadAsync(Guid? senderId, Guid? courseId)
+    {
+        try
+        {
+            string query = courseId.HasValue
+                ? $"messages/read?userId={Session.UserId}&courseId={courseId}"
+                : $"messages/read?userId={Session.UserId}&senderId={senderId}";
+
+            await _httpClient.PatchAsync(query, null);
+        }
+        catch { /* Okundu işaretleme kritik değil, sessizce geç */ }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // YARDIMCI METODLAR
+    // ══════════════════════════════════════════════════════════════════
+
+    private List<ChatSummaryModel> DecryptList(
+        List<ChatSummaryApiModel>? apiModels)
+    {
+        if (apiModels == null) return new();
+
+        return apiModels.Select(m => new ChatSummaryModel
+        {
+            ChatId = m.ChatId,
+            ChatType = m.ChatType,
+            DisplayName = m.DisplayName,
+            LastMessage = _encryption.Decrypt(m.LastMessage ?? string.Empty),
+            LastMessageAt = m.LastMessageAt,
+            UnreadCount = m.UnreadCount,
+            IsSilentMode = m.IsSilentMode,
+            IsLocked = m.IsLocked,
+            HasEmergency = m.IsEmergency,
+            OtherUserId = m.OtherUserId,
+            OtherUserRole = m.OtherUserRole,
+            CourseId = m.CourseId,
+            // Avatar
+            AvatarInitial = string.IsNullOrEmpty(m.DisplayName)
+                            ? "?" : m.DisplayName[0].ToString().ToUpper(),
+            AvatarColor = m.OtherUserRole switch
+            {
+                2 => "#1B305E",
+                3 => "#7C3AED",
+                _ => "#059669"
+            }
+        }).ToList();
+    }
+
+    // ── JSON Seçenekleri ──────────────────────────────────────────────
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    // ── Private Response Modelleri ────────────────────────────────────
+    private record LoginResponse(string? Message, UserInfo? User);
+    private record UserInfo(Guid Id, string Email, string FullName,
+                            string RegistrationNumber, int Role);
+    private record ErrorResponse(string? Message);
+    private record MessageResponse(string? Message);
+    private record ChatListResponse(
+        List<ChatSummaryApiModel>? OfficialChannels,
+        List<ChatSummaryApiModel>? StudyRooms,
+        List<ChatSummaryApiModel>? PrivateMessages);
+    private record HistoryResponse(string? Message, int Count,
+                                   List<MessageModel>? Data);
+    private record SendMessageResponse(string? Message, MessageModel? Data);
+    private record RightsResponse(string? Message, int Remaining, int MaxRights);
+
+    private class ChatSummaryApiModel
+    {
+        public string ChatId { get; set; } = string.Empty;
+        public string ChatType { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string? LastMessage { get; set; }
+        public DateTime LastMessageAt { get; set; }
+        public int UnreadCount { get; set; }
+        public bool IsSilentMode { get; set; }
+        public bool IsLocked { get; set; }
+        public bool IsEmergency { get; set; }
+        public Guid? OtherUserId { get; set; }
+        public int? OtherUserRole { get; set; }
+        public Guid? CourseId { get; set; }
+    }
+}
+
+// ── Sonuç Modelleri ───────────────────────────────────────────────────────
+public class SendMessageResult
+{
+    public bool Success { get; set; }
+    public bool IsRightsDepleted { get; set; }
+    public string StatusMsg { get; set; } = string.Empty;
+    public MessageModel? Message { get; set; }
+}
+
+public class ChatListResult
+{
+    public bool Success { get; set; }
+    public string Error { get; set; } = string.Empty;
+    public List<ChatSummaryModel> OfficialChannels { get; set; } = new();
+    public List<ChatSummaryModel> StudyRooms { get; set; } = new();
+    public List<ChatSummaryModel> PrivateMessages { get; set; } = new();
+
+    public static ChatListResult Fail(string error)
+        => new() { Success = false, Error = error };
 }
