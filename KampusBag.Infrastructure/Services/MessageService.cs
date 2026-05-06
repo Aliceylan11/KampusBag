@@ -31,6 +31,12 @@ public class MessageService : IMessageService
         _context = context;
     }
 
+    public async Task<int> GetCountByUserIdAsync(Guid userId)
+    {
+        // Kullanıcının gönderdiği toplam mesaj sayısını dönüyoruz
+        return await _context.Messages.CountAsync(m => m.SenderId == userId);
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // MESAJ GÖNDER
     // ════════════════════════════════════════════════════════════════════

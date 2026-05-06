@@ -454,26 +454,31 @@ public class ApiService
     }
 
     /// <summary>Yeni ders oluştur (Akademisyen/Temsilci).</summary>
-    public async Task<(bool success, string message, Guid? courseId)> CreateCourseAsync(
-        string name, string courseCode)
+    public async Task<(bool success, string message, Guid? courseId)> CreateCourseAsync(string name, string courseCode)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(
-                "courses/create",
-                new
-                {
-                    Name = name,
-                    CourseCode = courseCode.ToUpper(),
-                    AcademicId = Session.UserId
-                });
+            var response = await _httpClient.PostAsJsonAsync("api/courses/create", new
+            {
+                Name = name,
+                CourseCode = courseCode.ToUpper(),
+                AcademicId = Session.UserId // Giriş yapan hocanın ID'si
+            });
 
+            // 1. Önce ham metni oku
             var content = await response.Content.ReadAsStringAsync();
-            var parsed = JsonSerializer.Deserialize<CreateCourseResponse>(content, _jsonOptions);
 
-            return response.IsSuccessStatusCode
-                ? (true, parsed?.Message ?? "Ders oluşturuldu.", parsed?.CourseId)
-                : (false, parsed?.Message ?? "Oluşturulamadı.", null);
+            // 2. İçerik boşsa JSON hatası almamak için erken dön
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return (response.IsSuccessStatusCode,
+                        response.IsSuccessStatusCode ? "Ders başarıyla oluşturuldu." : "Sunucudan boş yanıt geldi.",
+                        null);
+            }
+
+            // 3. İçerik doluysa deserialize et
+            var parsed = JsonSerializer.Deserialize<CreateCourseResponse>(content, _jsonOptions);
+            return (response.IsSuccessStatusCode, parsed?.Message ?? "İşlem tamamlandı", parsed?.CourseId);
         }
         catch (Exception ex)
         {
@@ -606,17 +611,4 @@ public class ChatListResult
 
     public static ChatListResult Fail(string error)
         => new() { Success = false, Error = error };
-}
-public class UserProfileModel
-{
-    public Guid Id { get; set; }
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string RegistrationNumber { get; set; } = string.Empty;
-    public int Role { get; set; }
-
-    // İstatistikler (Backend'den Count(*) ile gelecek)
-    public int TotalCourses { get; set; }
-    public int TotalMessages { get; set; }
-    public int RemainingEmergencyRights { get; set; }
 }

@@ -14,6 +14,7 @@ namespace KampusBag.Core.Entities
 
         // Dersi veren hoca
         public Guid AcademicId { get; set; }
-        public virtual User Academic { get; set; }
+        public virtual User Academic { get; set; }  
+        public virtual ICollection<CourseMembership> CourseMemberships { get; set; } = new List<CourseMembership>();
     }
 }

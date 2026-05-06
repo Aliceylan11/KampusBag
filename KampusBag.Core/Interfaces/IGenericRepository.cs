@@ -17,4 +17,5 @@ public interface IGenericRepository<T> where T : class
     void Delete(T entity);
     // Filtreleme yapabilmemiz için (Örn: Maile göre kullanıcı bulma)
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+    Task<int> CountAsync(Expression<Func<T, bool>> predicate);
 }

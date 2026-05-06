@@ -1,8 +1,9 @@
-﻿using KampusBag.Core.Entities;
+﻿using KampusBag.Core.DTOs;
+using KampusBag.Core.Entities;
 using KampusBag.Core.Interfaces;
+using KampusBag.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KampusBag.Core.DTOs;
 
 namespace KampusBag.WebAPI.Controllers;
 
@@ -12,11 +13,16 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IGenericRepository<User> _userRepository;
+    private readonly IMessageService _messageService;
+    private readonly IGenericRepository<Course> _courseRepository;
 
-    public UsersController(IUserService userService, IGenericRepository<User> userRepository)
+    public UsersController(IUserService userService, IGenericRepository<User> userRepository, 
+        IMessageService messageService, IGenericRepository<Course> courseRepository)
     {
         _userService = userService;
         _userRepository = userRepository;
+        _messageService = messageService;
+        _courseRepository = courseRepository;
     }
 
     [HttpGet]
@@ -121,7 +127,6 @@ public class UsersController : ControllerBase
             return BadRequest(new { message = $"Giriş sırasında bir hata oluştu: {ex.Message}" });
         }
     }
-    // EKLEME YAPILACAK ENDPOINT'LER - UsersController.cs dosyasına ekleyin
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
@@ -181,5 +186,42 @@ public class UsersController : ControllerBase
         }
     }
 
-    
+    [HttpGet("profile/{id}")]
+    public async Task<IActionResult> GetUserProfile(Guid id)
+    {
+        try
+        {
+            // 1. Kullanıcıyı getir
+            var user = await _userService.GetByIdAsync(id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Kullanıcı bulunamadı." });
+            }
+
+            // 2. İstatistikleri Çek  
+            var totalMessages = await _messageService.GetCountByUserIdAsync(id);
+
+            // Kurs sayısını 'CourseMembership' tablosu üzerinden sayıyoruz
+            var totalCourses = await _courseRepository.CountAsync(c => c.CourseMemberships.Any(m => m.UserId == id));
+            // 3. Dinamik DTO Oluşturma
+            var profileDto = new UserProfileDto
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                RegistrationNumber = user.RegistrationNumber, 
+                Role = (int)user.Role,
+                TotalCourses = totalCourses,
+                TotalMessages = totalMessages
+            };
+
+            return Ok(profileDto);
+        }
+        catch (Exception ex)
+        { 
+            return BadRequest(new { message = $"Dinamik veri çekilemedi: {ex.Message}" });
+        }
+    }
 }
+

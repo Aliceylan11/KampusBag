@@ -10,5 +10,7 @@
         // Navigation Properties
         public virtual Course Course { get; set; }
         public virtual User User { get; set; }
+
+        public DateTime JoinDate { get; set; } = DateTime.UtcNow; 
     }
 }

@@ -21,6 +21,6 @@ public interface IMessageService
     // ── Mevcut Metodlar (değişmedi) ───────────────────────────────────────
     Task<bool> SendEmergencyMessageAsync(Guid senderId, Guid courseId, string content);
     Task<int> GetRemainingRightsAsync(Guid userId);
-    Task<int> MarkMessagesAsReadAsync(Guid userId, Guid? senderId, Guid? courseId);
-
+    Task<int> MarkMessagesAsReadAsync(Guid userId, Guid? senderId, Guid? courseId); 
+    Task<int> GetCountByUserIdAsync(Guid userId);
 }

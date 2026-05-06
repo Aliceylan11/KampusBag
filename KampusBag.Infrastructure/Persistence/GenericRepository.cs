@@ -31,6 +31,11 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         await _dbSet.AddAsync(entity);
         await _context.SaveChangesAsync(); // Veritabanına kalıcı olarak işleme komutu
     }
+    public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
+    {
+        // Veritabanı seti üzerinden filtreleyerek sayıyoruz
+        return await _dbSet.CountAsync(predicate);
+    }
     public void Update(T entity) => _dbSet.Update(entity);
 
     public void Delete(T entity) => _dbSet.Remove(entity);

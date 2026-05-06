@@ -1,8 +1,10 @@
-﻿using KampusBag.Core.Entities;
+﻿using KampusBag.Core.DTOs;
+using KampusBag.Core.Entities;
 using KampusBag.Core.Enums;
 using KampusBag.Core.Interfaces;
-using KampusBag.Core.DTOs;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using KampusBag.Infrastructure.Persistence;
 using System.Text;
 
 namespace KampusBag.Infrastructure.Services;
@@ -11,11 +13,19 @@ public class UserService : IUserService
 {
     private readonly IGenericRepository<User> _userRepository;
     private readonly IEmailService _emailService;
+    private readonly KampusBagDbContext _context;
 
-    public UserService(IGenericRepository<User> userRepository, IEmailService emailService)
+    public UserService(IGenericRepository<User> userRepository, IEmailService emailService, KampusBagDbContext context)
     {
         _userRepository = userRepository;
         _emailService = emailService;
+        _context = context;
+    }
+
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        //  KampusBagDbContext üzerinden kullanıcıyı getiriyoruz
+        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<string> VerifyEmailAsync(string email, string code)

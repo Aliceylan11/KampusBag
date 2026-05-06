@@ -6,12 +6,14 @@ namespace KampusBag.Core.Interfaces;
 public interface IUserService
 {
     Task<string> RegisterUserAsync(UserRegisterDto dto);
-    Task<string> VerifyEmailAsync(string email, string code); // Yeni metod
+    Task<string> VerifyEmailAsync(string email, string code); 
     Task<User?> AuthenticateAsync(string identifier, string password);
+    Task<User?> GetByIdAsync(Guid id);  
     Task<IEnumerable<User>> SearchUsersAsync(string searchTerm);
     UserRole DetermineRoleByEmail(string email);
 
     // YENİ METODLAR - Şifre Sıfırlama
     Task<string> ForgotPasswordAsync(string email);
     Task<string> ResetPasswordAsync(string email, string code, string newPassword);
+
 }
