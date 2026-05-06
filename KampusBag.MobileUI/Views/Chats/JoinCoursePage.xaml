@@ -2,57 +2,92 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Chats.JoinCoursePage"
-             BackgroundColor="#80000000">
-    <Frame VerticalOptions="Center" 
-           HorizontalOptions="Center" 
-           Margin="30" 
-           Padding="25"
-           CornerRadius="20" 
-           BackgroundColor="White"
-           HasShadow="True"
-           WidthRequest="320">
+             BackgroundColor="#80000000"
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False">
 
-        <VerticalStackLayout Spacing="20">
+    <Grid VerticalOptions="Center" HorizontalOptions="Center" Padding="24">
 
-            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
-                <Label Text="Derse Katıl" 
-                       FontSize="22" 
-                       FontAttributes="Bold" 
-                       TextColor="#1B305E" 
-                       HorizontalOptions="Center" />
-                <Label Text="Hocanızdan aldığınız 6 haneli kodu girin." 
-                       FontSize="13" 
-                       TextColor="Gray" 
-                       HorizontalTextAlignment="Center" />
+        <Border BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                Stroke="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                StrokeThickness="1"
+                Padding="28">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="24"/>
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="24" WidthRequest="320">
+
+                <!-- Başlık -->
+                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Label Text="🎓" FontSize="44" HorizontalOptions="Center"/>
+                    <Label Text="Derse Katıl"
+                           FontSize="22" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#1B305E, Dark=White}"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Hocanızdan aldığınız 6 haneli kodu girin."
+                           FontSize="13" TextColor="#6B7280"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <!-- Kod Girişi -->
+                <Border Stroke="#1B305E" StrokeThickness="2"
+                        BackgroundColor="{AppThemeBinding Light=#F0F4FF, Dark=#1A2540}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <Entry x:Name="CodeEntry"
+                           Text="{Binding CourseCode}"
+                           Placeholder="KB1234"
+                           PlaceholderColor="#9CA3AF"
+                           MaxLength="6"
+                           FontSize="28"
+                           FontAttributes="Bold"
+                           CharacterSpacing="8"
+                           HorizontalTextAlignment="Center"
+                           TextColor="#1B305E"
+                           BackgroundColor="Transparent"
+                           HeightRequest="70"
+                           Keyboard="Default"/>
+                </Border>
+
+                <!-- Butonlar -->
+                <VerticalStackLayout Spacing="10">
+                    <Button Text="Gruba Dahil Ol"
+                            Command="{Binding JoinCommand}"
+                            BackgroundColor="#1B305E"
+                            TextColor="White"
+                            CornerRadius="12"
+                            HeightRequest="54"
+                            FontAttributes="Bold"
+                            FontSize="15">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsLoading}" Value="True">
+                                <Setter Property="Text" Value="Katılınıyor..."/>
+                                <Setter Property="BackgroundColor" Value="#6B7280"/>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+
+                    <Button Text="Vazgeç"
+                            Command="{Binding CancelCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="#9CA3AF"
+                            FontSize="14"/>
+                </VerticalStackLayout>
+
+                <!-- İpucu -->
+                <Border BackgroundColor="#F0F4FF" Stroke="Transparent" Padding="12,8">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10"/>
+                    </Border.StrokeShape>
+                    <Label Text="ℹ️  Kod büyük-küçük harf duyarsızdır."
+                           FontSize="12" TextColor="#1D4ED8"
+                           HorizontalTextAlignment="Center"/>
+                </Border>
+
             </VerticalStackLayout>
+        </Border>
+    </Grid>
 
-            <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                <Entry x:Name="CourseCodeEntry"
-                       Placeholder="Örn: KB1234" 
-                       MaxLength="6"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       HorizontalTextAlignment="Center"
-                       CharacterSpacing="5"
-                       HeightRequest="55" />
-            </Frame>
-
-            <VerticalStackLayout Spacing="10">
-                <Button Text="Gruba Dahil Ol" 
-                        BackgroundColor="#1B305E" 
-                        TextColor="White" 
-                        CornerRadius="10" 
-                        HeightRequest="50" 
-                        FontAttributes="Bold"
-                        Clicked="OnJoinClicked" />
-
-                <Button Text="Vazgeç" 
-                        BackgroundColor="Transparent" 
-                        TextColor="Gray" 
-                        FontSize="14"
-                        Clicked="OnCancelClicked" />
-            </VerticalStackLayout>
-
-        </VerticalStackLayout>
-    </Frame>
 </ContentPage>

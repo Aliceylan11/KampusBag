@@ -1,9 +1,9 @@
-﻿using KampusBag.MobileUI.Models;
-using KampusBag.MobileUI.Services;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using KampusBag.MobileUI.Models;
+using KampusBag.MobileUI.Services;
 
 namespace KampusBag.MobileUI.ViewModels;
 
@@ -18,23 +18,18 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     public bool IsPrivateWithTeacher { get; set; }
     public bool IsReadOnly { get; set; }
 
-    // ── Mesajlar ─────────────────────────────────────────────────────
-    // Acil mesajlar her zaman başta, sonra zaman sırasında
+    // ── Koleksiyon ───────────────────────────────────────────────────
     public ObservableCollection<MessageModel> Messages { get; } = new();
 
-    // ── Giriş ─────────────────────────────────────────────────────────
+    // ── Giriş Metni ──────────────────────────────────────────────────
     private string _messageText = string.Empty;
     public string MessageText
     {
         get => _messageText;
-        set
-        {
-            Set(ref _messageText, value);
-            OnPropertyChanged(nameof(CanSend));
-        }
+        set { Set(ref _messageText, value); OnPropertyChanged(nameof(CanSend)); }
     }
 
-    // ── Acil Hak ──────────────────────────────────────────────────────
+    // ── Acil Hak ─────────────────────────────────────────────────────
     private int _remainingRights = 3;
     public int RemainingRights
     {
@@ -47,58 +42,49 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         }
     }
 
-    public string RightsText
-        => $"Acil hak: {RemainingRights}/3";
-
-    public bool ShowEmergencyButton
-        => IsPrivateWithTeacher && !IsReadOnly && RemainingRights > 0;
+    public string RightsText => $"Acil hak: {RemainingRights}/3";
+    public bool ShowEmergencyButton => IsPrivateWithTeacher && !IsReadOnly && RemainingRights > 0;
 
     // ── State ─────────────────────────────────────────────────────────
     private bool _isLoading;
     private bool _isSending;
-    private string _statusMessage = string.Empty;
 
     public bool IsLoading { get => _isLoading; set => Set(ref _isLoading, value); }
-    public bool IsSending { get => _isSending; set => Set(ref _isSending, value); }
-    public string StatusMessage { get => _statusMessage; set => Set(ref _statusMessage, value); }
-    public bool CanSend => !string.IsNullOrWhiteSpace(MessageText) && !IsSending;
+    public bool IsSending { get => _isSending; set { Set(ref _isSending, value); OnPropertyChanged(nameof(CanSend)); } }
+    public bool CanSend => !string.IsNullOrWhiteSpace(MessageText) && !IsSending && !IsReadOnly;
 
-    // ── Komutlar ──────────────────────────────────────────────────────
-    public ICommand LoadHistoryCommand { get; }
+    // ── Komutlar ─────────────────────────────────────────────────────
     public ICommand SendCommand { get; }
     public ICommand SendEmergencyCommand { get; }
 
-    // Page referansı — DisplayAlert için
     private readonly Page _page;
 
     public ChatDetailViewModel(Page page)
     {
         _page = page;
-        LoadHistoryCommand = new Command(async () => await LoadHistoryAsync());
         SendCommand = new Command(async () => await SendAsync(false));
-        SendEmergencyCommand = new Command(async () => await SendEmergencyAsync());
+        SendEmergencyCommand = new Command(async () => await ConfirmAndSendEmergencyAsync());
     }
 
-    // ── Geçmiş Yükleme ───────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    // GEÇMİŞ YÜKLEME
+    // ════════════════════════════════════════════════════════════════
     public async Task LoadHistoryAsync()
     {
         IsLoading = true;
 
-        // Acil hak bilgisini al
-        var (ok, remaining) = await _apiService
-            .GetEmergencyRightsAsync(ApiService.Session.UserId);
+        // Acil hak bilgisi
+        var (ok, remaining) = await _apiService.GetEmergencyRightsAsync(ApiService.Session.UserId);
         if (ok) RemainingRights = remaining;
 
-        // Mesaj geçmişini al
+        // Mesaj geçmişi
         var (success, messages, error) = await _apiService
             .GetChatHistoryAsync(ApiService.Session.UserId, OtherUserId, CourseId);
 
         if (success)
         {
-            // Acil mesajlar önce, sonra tarih sırası
-            var sorted = messages
-                .OrderByDescending(m => m.IsEmergency)
-                .ThenBy(m => m.SentAt);
+            // DÜZELTME: Sadece tarih sırasına göre (eskiden yeniye doğal akış)
+            var sorted = messages.OrderBy(m => m.SentAt);
 
             Messages.Clear();
             foreach (var m in sorted) Messages.Add(m);
@@ -108,19 +94,21 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         }
         else
         {
-            await _page.DisplayAlert("Hata", error, "Tamam");
+            await _page.DisplayAlert("Bağlantı Hatası", error, "Tamam");
         }
 
         IsLoading = false;
     }
 
-    // ── Normal Mesaj Gönder ───────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    // MESAJ GÖNDER
+    // ════════════════════════════════════════════════════════════════
     private async Task SendAsync(bool isEmergency)
     {
         if (!CanSend) return;
 
         IsSending = true;
-        string text = MessageText.Trim();
+        var text = MessageText.Trim();
         MessageText = string.Empty;
 
         var result = await _apiService.SendMessageAsync(
@@ -128,11 +116,10 @@ public class ChatDetailViewModel : INotifyPropertyChanged
 
         if (result.Success && result.Message != null)
         {
-            // Gönderilen mesajı listeye ekle
             var newMsg = new MessageModel
             {
                 Id = result.Message.Id,
-                Content = text,     // Şifreli değil, ham metin
+                Content = text,
                 SentAt = DateTime.UtcNow,
                 SenderId = ApiService.Session.UserId,
                 SenderName = ApiService.Session.FullName,
@@ -143,66 +130,49 @@ public class ChatDetailViewModel : INotifyPropertyChanged
                 CourseId = CourseId
             };
 
-            // Sessiz mod uyarısı
             if (newMsg.IsSilent)
-            {
-                await _page.DisplayAlert(
-                    "🌙 Sessiz Mod",
-                    "Mesajınız iletildi. Alıcı 17:00 sonrası bildirim almayacak.",
-                    "Tamam");
-            }
+                await _page.DisplayAlert("🌙 Sessiz Mod",
+                    "Mesaj iletildi. Alıcı 17:00 sonrası bildirim almayacak.", "Tamam");
 
-            // Acil mesajlar başa, normal mesajlar sona
+            Messages.Add(newMsg);   // Sona ekle — sıralama zaten tarihe göre
+
             if (isEmergency)
-                Messages.Insert(0, newMsg);
-            else
-                Messages.Add(newMsg);
-
-            RemainingRights = isEmergency
-                ? Math.Max(0, RemainingRights - 1)
-                : RemainingRights;
+                RemainingRights = Math.Max(0, RemainingRights - 1);
         }
         else if (result.IsRightsDepleted)
         {
-            // 422 — Acil hak bitti
-            await _page.DisplayAlert(
-                "🚨 Hak Doldu",
-                result.StatusMsg,
-                "Tamam");
+            await _page.DisplayAlert("🚨 Hak Doldu", result.StatusMsg, "Tamam");
+            MessageText = text;   // Kullanıcının yazdığı metni geri koy
         }
         else
         {
             await _page.DisplayAlert("Hata", result.StatusMsg, "Tamam");
+            MessageText = text;
         }
 
         IsSending = false;
     }
 
-    // ── Acil Mesaj Gönder ─────────────────────────────────────────────
-    private async Task SendEmergencyAsync()
+    private async Task ConfirmAndSendEmergencyAsync()
     {
         if (!CanSend) return;
 
         bool confirm = await _page.DisplayAlert(
-            "🚨 Acil Mesaj",
-            $"Bu mesaj 1 acil hakkınızı tüketecek. " +
-            $"Kalan hakkınız: {RemainingRights}/3\n\nDevam etmek istiyor musunuz?",
-            "Evet, Gönder",
-            "Vazgeç");
+            "🚨 Acil Mesaj Gönder",
+            $"Kalan hakkınız: {RemainingRights}/3\n\n" +
+            "Bu işlem 1 acil hakkınızı tüketecek. Devam edilsin mi?",
+            "Evet, Gönder", "Vazgeç");
 
         if (confirm) await SendAsync(true);
     }
 
     // ── INotifyPropertyChanged ────────────────────────────────────────
     public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
+    private void Set<T>(ref T f, T v, [CallerMemberName] string? n = null)
     {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return;
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        if (EqualityComparer<T>.Default.Equals(f, v)) return;
+        f = v; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
-
-    protected void OnPropertyChanged([CallerMemberName] string? name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    protected void OnPropertyChanged([CallerMemberName] string? n = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }

@@ -5,7 +5,8 @@
              xmlns:m="clr-namespace:KampusBag.MobileUI.Models"
              x:Class="KampusBag.MobileUI.Views.Chats.ChatListPage"
              Title="KampusBag"
-             BackgroundColor="{AppThemeBinding Light=#F0F2F5, Dark=#0D1117}">
+             BackgroundColor="{AppThemeBinding Light=#F0F2F5, Dark=#0D1117}"
+             Shell.NavBarIsVisible="False">
 
     <ContentPage.BindingContext>
         <vm:ChatListViewModel/>
@@ -50,23 +51,40 @@
         </VerticalStackLayout>
 
         <!-- ── ANA İÇERİK ── -->
-        <Grid RowDefinitions="Auto, *"
-              IsVisible="{Binding IsLoading, Converter={StaticResource InvertBool}}">
+        <Grid Grid.Row="2" 
+                    RowDefinitions="Auto, *"
+                    IsVisible="{Binding IsLoading, Converter={StaticResource InvertBool}}">
 
-            <!-- Arama Barı -->
-            <Frame Grid.Row="0"
-                   Margin="16,12,16,4" Padding="0"
-                   CornerRadius="14"
-                   BorderColor="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
-                   BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}">
-                <SearchBar Placeholder="Sohbetlerde ara..."
-                           PlaceholderColor="#9CA3AF"
-                           TextColor="{AppThemeBinding Light=#111827, Dark=White}"
-                           BackgroundColor="Transparent"
-                           HeightRequest="46"
-                           TextChanged="OnSearchTextChanged"/>
-            </Frame>
+            <!-- 1. ÜST KISIM: ARAMA + BUTONLAR -->
+            <Grid Grid.Row="0" 
+                    Margin="16,12,16,8" 
+                    ColumnDefinitions="*, Auto, Auto" 
+                    ColumnSpacing="10">
 
+                <!-- Sade Beyaz Arama Barı -->
+                <Border Grid.Column="0" Stroke="#E5E7EB" BackgroundColor="White" HeightRequest="46">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <SearchBar Placeholder="Sohbetlerde ara..." 
+                       PlaceholderColor="#9CA3AF" 
+                       TextColor="#111827"
+                       FontSize="14"
+                       BackgroundColor="Transparent"
+                       TextChanged="OnSearchTextChanged"/>
+                </Border>
+
+                <!-- Kişi Ara Butonu (👤) -->
+                <Button Grid.Column="1" Text="👤" WidthRequest="46" HeightRequest="46"
+                        BackgroundColor="White" TextColor="#1B305E" BorderColor="#E5E7EB" BorderWidth="1"
+                        CornerRadius="12" Clicked="OnSearchUserClicked" />
+
+                <!-- Derse Katıl Butonu (🔑) -->
+                <Button Grid.Column="2" Text="🔑" WidthRequest="46" HeightRequest="46"
+                        BackgroundColor="White" TextColor="#1B305E" BorderColor="#E5E7EB" BorderWidth="1"
+                        CornerRadius="12" Clicked="OnJoinCourseClicked" />
+            </Grid>
+            
             <ScrollView Grid.Row="1">
                 <VerticalStackLayout Spacing="0" Padding="0,8,0,24">
 

@@ -21,6 +21,10 @@ public partial class ChatListPage : ContentPage
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         => _vm.SearchCommand.Execute(e.NewTextValue);
+    private async void OnSearchUserClicked(object sender, EventArgs e)
+    => await Navigation.PushAsync(new SearchUserPage());
+    private async void OnJoinCourseClicked(object sender, EventArgs e)
+        => await Navigation.PushModalAsync(new JoinCoursePage());
 
     // ── Resmi Kanal Tıklama ───────────────────────────────────────────
     private async void OnOfficialChannelTapped(object sender, TappedEventArgs e)

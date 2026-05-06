@@ -25,27 +25,16 @@ public partial class ChatDetailPage : ContentPage
         };
 
         BindingContext = _vm;
-        Title = chatName;
         ChatTitleLabel.Text = chatName;
-    } 
-
-    public ChatDetailPage(bool isPrivateWithTeacher) : this("Bilinmeyen Sohbet", null, null, isPrivateWithTeacher)
-    {
-        // Bu, eski çağrıları kurtaracaktır.
     }
+
+    // Eski çağrılarla (bool) geriye uyumluluk
+    public ChatDetailPage(bool isPrivateWithTeacher)
+        : this("Sohbet", null, null, isPrivateWithTeacher) { }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await _vm.LoadHistoryAsync();
-
-        // Listeyi en alta kaydır
-        ScrollToBottom();
-    }
-
-    private void ScrollToBottom()
-    {
-        if (_vm.Messages.Count > 0)
-            MessagesList.ScrollTo(_vm.Messages.Last(), animate: false);
     }
 }

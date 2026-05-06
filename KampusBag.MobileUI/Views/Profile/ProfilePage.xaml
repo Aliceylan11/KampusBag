@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Profile.ProfilePage"
              Title="Profilim"
-             BackgroundColor="{AppThemeBinding Light=#F3F4F6, Dark=#111827}">
+             BackgroundColor="{AppThemeBinding Light=#F3F4F6, Dark=#111827}"
+             Shell.NavBarIsVisible="False">
 
     <ScrollView>
         <VerticalStackLayout Spacing="0">
@@ -26,26 +27,28 @@
                 </VerticalStackLayout>
             </Grid>
 
-            <!-- İSTATİSTİK KARTI -->
+            <!-- İSTATİSTİK KARTI (Güncellendi) -->
             <Frame BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
-                   BorderColor="{AppThemeBinding Light=#1B305E, Dark=#2A437E}"
-                   CornerRadius="16" Padding="0" Margin="20,-28,20,0" HasShadow="True">
+                    BorderColor="{AppThemeBinding Light=#1B305E, Dark=#2A437E}"
+                    CornerRadius="16" Padding="0" Margin="20,-28,20,0" HasShadow="True">
                 <Grid ColumnDefinitions="*, Auto, *, Auto, *">
                     <VerticalStackLayout Grid.Column="0" Spacing="4" Padding="12,18" HorizontalOptions="Center">
-                        <Label Text="7" FontSize="26" FontAttributes="Bold" 
-                               TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
+                        <!-- x:Name Eklendi -->
+                        <Label x:Name="CourseCountLabel" Text="0" FontSize="26" FontAttributes="Bold" 
+                                TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
                         <Label Text="Ders" FontSize="12" TextColor="#6B7280" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                     <BoxView Grid.Column="1" WidthRequest="1" Color="#E5E7EB" VerticalOptions="Fill" Margin="0,12"/>
                     <VerticalStackLayout Grid.Column="2" Spacing="4" Padding="12,18" HorizontalOptions="Center">
-                        <Label Text="42" FontSize="26" FontAttributes="Bold" 
-                               TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
+                        <!-- x:Name Eklendi -->
+                        <Label x:Name="MessageCountLabel" Text="0" FontSize="26" FontAttributes="Bold" 
+                                TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
                         <Label Text="Mesaj" FontSize="12" TextColor="#6B7280" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                     <BoxView Grid.Column="3" WidthRequest="1" Color="#E5E7EB" VerticalOptions="Fill" Margin="0,12"/>
                     <VerticalStackLayout Grid.Column="4" Spacing="4" Padding="12,18" HorizontalOptions="Center">
-                        <Label x:Name="EmergencyRightsLabel" Text="∞" FontSize="26" FontAttributes="Bold" 
-                               TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
+                        <Label x:Name="EmergencyRightsLabel" Text="—" FontSize="26" FontAttributes="Bold" 
+                                TextColor="{AppThemeBinding Light=#1B305E, Dark=White}" HorizontalOptions="Center"/>
                         <Label Text="Yetki" FontSize="12" TextColor="#6B7280" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Grid>

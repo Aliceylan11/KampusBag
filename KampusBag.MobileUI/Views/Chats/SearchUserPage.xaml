@@ -1,60 +1,190 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:KampusBag.MobileUI.ViewModels"
+             xmlns:m="clr-namespace:KampusBag.MobileUI.Models"
              x:Class="KampusBag.MobileUI.Views.Chats.SearchUserPage"
-             Title="Kullanıcı Bul"
-             BackgroundColor="White">
+             Title="Kullanıcı Ara"
+             BackgroundColor="{AppThemeBinding Light=#F0F2F5, Dark=#0D1117}"
+             Shell.NavBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto, *">
+    <ContentPage.BindingContext>
+        <vm:SearchUserViewModel/>
+    </ContentPage.BindingContext>
 
-        <VerticalStackLayout Grid.Row="0" Padding="20" Spacing="10" BackgroundColor="#1B305E">
-            <Label Text="Öğrenci Numarası ile Ara" 
-                   TextColor="White" 
-                   FontSize="18" 
-                   FontAttributes="Bold" />
-            <Frame Padding="0" CornerRadius="10" HasShadow="False" BorderColor="Transparent">
-                <SearchBar x:Name="UserSearchBar"
-                           Placeholder="Örn: 220101..." 
-                           PlaceholderColor="Gray"
-                           TextColor="Black"
-                           BackgroundColor="White"
-                           SearchButtonPressed="OnSearchButtonPressed" />
-            </Frame>
-        </VerticalStackLayout>
+    <Grid RowDefinitions="Auto, Auto, *">
 
-        <CollectionView Grid.Row="0" x:Name="MessagesList" Margin="15">
-            <CollectionView.EmptyView>
-                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
-                    <Label Text="🔍" FontSize="50" HorizontalOptions="Center" />
-                    <Label Text="Aramaya başlamak için numara girin." 
-                           TextColor="Gray" 
-                           HorizontalOptions="Center" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
+        <!-- ── ARAMA BARI ── -->
+        <Grid Grid.Row="0" BackgroundColor="#1B305E" Padding="16,12,16,16">
+            <Border Stroke="#E5E7EB" StrokeThickness="1.5"
+                    BackgroundColor="#FFFFFF" Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14"/>
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="Auto, *, Auto" Padding="14,0">
+                    <Label Grid.Column="0" Text="🔍" FontSize="18"
+                           VerticalOptions="Center" TextColor="White"/>
+                    <Entry Grid.Column="1"
+                           x:Name="SearchEntry"
+                           Text="{Binding SearchQuery}"
+                           Placeholder="İsim veya öğrenci numarası..."
+                           PlaceholderColor="#111827"
+                           TextColor="#111827"
+                           BackgroundColor="Transparent"
+                           HeightRequest="50"
+                           Margin="8,0"
+                           ReturnCommand="{Binding SearchCommand}"/>
+                    <ActivityIndicator Grid.Column="2"
+                                       IsRunning="{Binding IsSearching}"
+                                       IsVisible="{Binding IsSearching}"
+                                       Color="White"
+                                       WidthRequest="20" HeightRequest="20"/>
+                </Grid>
+            </Border>
+        </Grid>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Padding="10" ColumnDefinitions="Auto, *, Auto">
-                        <Frame WidthRequest="50" HeightRequest="50" CornerRadius="25" Padding="0" BackgroundColor="#E0E0E0">
-                            <Label Text="👤" HorizontalOptions="Center" VerticalOptions="Center" FontSize="24" />
-                        </Frame>
+        <!-- ── İPUCU ── -->
+        <Border Grid.Row="1"
+                BackgroundColor="#EFF6FF"
+                Stroke="Transparent"
+                IsVisible="{Binding HasSearched,
+                    Converter={StaticResource InvertBool}}"
+                Padding="16,10">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0"/>
+            </Border.StrokeShape>
+            <Label Text="ℹ️  En az 3 karakter yazarak anlık arama başlatabilirsiniz."
+                   FontSize="12" TextColor="#111827"
+                   HorizontalTextAlignment="Center"/>
+        </Border>
 
-                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="15,0">
-                            <Label Text="Öğrenci Adı Soyadı" FontAttributes="Bold" TextColor="Black" />
-                            <Label Text="Bilgisayar Programcılığı" FontSize="12" TextColor="Gray" />
-                        </VerticalStackLayout>
+        <!-- ── SONUÇLAR ── -->
+        <Grid Grid.Row="2">
 
-                        <Button Grid.Column="2" 
-                                Text="Mesaj At" 
-                                FontSize="12"
-                                BackgroundColor="#1B305E" 
-                                TextColor="White" 
-                                CornerRadius="20"
-                                HeightRequest="35"
-                                Clicked="OnStartChatClicked" />
-                    </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+            <!-- Hata -->
+            <VerticalStackLayout IsVisible="{Binding HasError}"
+                                 VerticalOptions="Center" Spacing="12" Padding="30">
+                <Label Text="⚠️" FontSize="44" HorizontalOptions="Center"/>
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#DC2626" HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Sonuç yok -->
+            <VerticalStackLayout IsVisible="{Binding IsEmpty}"
+                                 VerticalOptions="Center" Spacing="10" Padding="30">
+                <Label Text="🔍" FontSize="48" HorizontalOptions="Center"/>
+                <Label Text="Kullanıcı bulunamadı"
+                       FontSize="18" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#374151, Dark=White}"
+                       HorizontalOptions="Center"/>
+                <Label Text="Farklı bir isim veya numara deneyin."
+                       FontSize="13" TextColor="#9CA3AF"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Kullanıcı Listesi -->
+            <CollectionView ItemsSource="{Binding Results}"
+                            SelectionMode="None">
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:UserSearchModel">
+                        <Grid Padding="16,5">
+                            <Border Stroke="{AppThemeBinding Light=#E5E7EB, Dark=#2D333B}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#161B22}"
+                                    Padding="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16"/>
+                                </Border.StrokeShape>
+
+                                <Grid ColumnDefinitions="Auto, *, Auto"
+                                      Padding="16,14" ColumnSpacing="14">
+
+                                    <!-- Avatar -->
+                                    <Border Grid.Column="0"
+                                            BackgroundColor="{Binding AvatarColor}"
+                                            Stroke="Transparent"
+                                            WidthRequest="52" HeightRequest="52">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="26"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding AvatarInitial}"
+                                               FontSize="22" FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+
+                                    <!-- Kullanıcı Bilgisi -->
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         VerticalOptions="Center" Spacing="4">
+
+                                        <Label Text="{Binding FullName}"
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                               MaxLines="1"/>
+
+                                        <Label Text="{Binding Email}"
+                                               FontSize="12" TextColor="#6B7280"
+                                               MaxLines="1"/>
+
+                                        <HorizontalStackLayout Spacing="6">
+                                            <!-- Rol Rozeti -->
+                                            <Border BackgroundColor="{Binding RoleBadgeColor}"
+                                                    Stroke="Transparent" Padding="7,3">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6"/>
+                                                </Border.StrokeShape>
+                                                <HorizontalStackLayout Spacing="3">
+                                                    <Label Text="{Binding RoleIcon}" FontSize="10"/>
+                                                    <Label Text="{Binding RoleLabel}"
+                                                           FontSize="10" FontAttributes="Bold"
+                                                           TextColor="{Binding RoleTextColor}"/>
+                                                </HorizontalStackLayout>
+                                            </Border>
+
+                                            <!-- Sessiz Mod Uyarısı -->
+                                            <Border IsVisible="{Binding MightBeSilent}"
+                                                    BackgroundColor="#FEF2F2"
+                                                    Stroke="Transparent" Padding="7,3">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6"/>
+                                                </Border.StrokeShape>
+                                                <Label Text="🌙 Sessiz Mod"
+                                                       FontSize="10" TextColor="#DC2626"/>
+                                            </Border>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+
+                                    <!-- Mesaj Butonu -->
+                                    <Border Grid.Column="2"
+                                            BackgroundColor="#EEF2FF"
+                                            Stroke="Transparent"
+                                            WidthRequest="40" HeightRequest="40"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="💬"
+                                               FontSize="18"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
+
+                                </Grid>
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer CommandParameter="{Binding .}"
+                                                          Tapped="OnUserTapped"/>
+                                </Border.GestureRecognizers>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+            </CollectionView>
+
+        </Grid>
     </Grid>
+
 </ContentPage>

@@ -12,7 +12,14 @@ public partial class AppShell : Shell
         InitializeComponent();
         RegisterRoutes();
         LoadFlyoutHeader();
+        BindingContext = this;
     }
+
+    // Sadece Hoca ve Admin
+    public bool IsTeacherOrAdmin => ApiService.Session.Role == 2 || ApiService.Session.Role == 4;
+
+    // Sadece Temsilci
+    public bool IsRepresentative => ApiService.Session.Role == 3;
 
     // ════════════════════════════════════════
     // ROUTE KAYITLARI
@@ -58,6 +65,7 @@ public partial class AppShell : Shell
             _ => "Kullanıcı"
         };
     }
+
 
     // ════════════════════════════════════════
     // FLYOUT FOOTER — Güvenli Çıkış

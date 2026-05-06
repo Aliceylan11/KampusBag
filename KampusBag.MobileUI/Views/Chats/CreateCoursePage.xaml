@@ -2,64 +2,191 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Chats.CreateCoursePage"
-             Title="Yeni Ders Grubu"
-             BackgroundColor="White">
+             Title="{Binding PageTitle}"
+             BackgroundColor="{AppThemeBinding Light=#F0F2F5, Dark=#0D1117}"
+             Shell.NavBarIsVisible="False">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20">
+        <VerticalStackLayout Spacing="0">
 
-            <VerticalStackLayout Spacing="5">
-                <Label Text="Grup Oluştur" 
-                       FontSize="26" 
-                       FontAttributes="Bold" 
-                       TextColor="#1B305E" />
-                <Label Text="Öğrencilerinizle güvenli iletişim için ders detaylarını girin." 
-                       FontSize="14" 
-                       TextColor="Gray" />
+            <!-- ── BAŞLIK BANNER ── -->
+            <Grid BackgroundColor="{Binding TypeColor}"
+                  Padding="24,32,24,48">
+                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Label Text="{Binding TypeIcon}"
+                           FontSize="48" HorizontalOptions="Center"/>
+                    <Label Text="{Binding PageTitle}"
+                           FontSize="22" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                    <Label Text="{Binding TypeDescription}"
+                           FontSize="13" TextColor="#FFFFFFCC"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- ── FORM KARTI ── -->
+            <Border BackgroundColor="{AppThemeBinding Light=White, Dark=#1F2937}"
+                    Stroke="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                    StrokeThickness="1"
+                    Margin="20,-24,20,0"
+                    Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="20"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="20">
+
+                    <!-- Ders Adı Önizlemesi -->
+                    <Grid HorizontalOptions="Center">
+                        <Border BackgroundColor="{Binding TypeColor}"
+                                Stroke="Transparent"
+                                WidthRequest="72" HeightRequest="72">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20"/>
+                            </Border.StrokeShape>
+                            <Label Text="{Binding AvatarInitial}"
+                                   FontSize="32" FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- Ders Adı -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Grup / Ders Adı"
+                               FontSize="13" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                               Margin="4,0"/>
+                        <Border Stroke="{AppThemeBinding Light=#E5E7EB, Dark=#374151}"
+                                BackgroundColor="{AppThemeBinding Light=#F9FAFB, Dark=#111827}"
+                                Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12"/>
+                            </Border.StrokeShape>
+                            <Entry Text="{Binding CourseName}"
+                                   Placeholder="Ör: Veri Yapıları — Grup A"
+                                   PlaceholderColor="#9CA3AF"
+                                   TextColor="{AppThemeBinding Light=#111827, Dark=White}"
+                                   BackgroundColor="Transparent"
+                                   HeightRequest="52"
+                                   Margin="14,0"
+                                   MaxLength="60"/>
+                        </Border>
+                        <Label Text="En az 3 karakter giriniz."
+                               FontSize="11" TextColor="#9CA3AF" Margin="4,0"/>
+                    </VerticalStackLayout>
+
+                    <!-- Katılım Kodu -->
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Grid.Column="0"
+                                   Text="Katılım Kodu"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#374151, Dark=#D1D5DB}"
+                                   Margin="4,0" VerticalOptions="Center"/>
+                            <Label Grid.Column="1"
+                                   Text="{Binding CodeLength}"
+                                   FontSize="11" TextColor="#9CA3AF"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                            <Border Grid.Column="0"
+                                    Stroke="#1B305E" StrokeThickness="1.5"
+                                    BackgroundColor="{AppThemeBinding Light=#F0F4FF, Dark=#1A2540}"
+                                    Padding="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Entry Text="{Binding CourseCode}"
+                                       Placeholder="KB1234"
+                                       PlaceholderColor="#9CA3AF"
+                                       MaxLength="6"
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       CharacterSpacing="4"
+                                       HorizontalTextAlignment="Center"
+                                       TextColor="#1B305E"
+                                       BackgroundColor="Transparent"
+                                       HeightRequest="52"
+                                       Keyboard="Default"/>
+                            </Border>
+
+                            <!-- Rastgele Üret Butonu -->
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#1B305E"
+                                    Stroke="Transparent"
+                                    WidthRequest="52" HeightRequest="52">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding GenerateCodeCommand}"/>
+                                </Border.GestureRecognizers>
+                                <Label Text="🎲"
+                                       FontSize="22"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <Label Text="🎲 ile rastgele benzersiz kod üretebilirsiniz."
+                               FontSize="11" TextColor="#9CA3AF" Margin="4,0"/>
+                    </VerticalStackLayout>
+
+                    <!-- Bilgi Notu -->
+                    <Border BackgroundColor="#EFF6FF"
+                            Stroke="#BFDBFE" StrokeThickness="1"
+                            Padding="14,10">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="10"/>
+                        </Border.StrokeShape>
+                        <Label FontSize="12" TextColor="#1D4ED8"
+                               HorizontalTextAlignment="Center">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="ℹ️  "/>
+                                    <Span Text="Kodu oluşturduktan sonra öğrencilerinizle paylaşın. "/>
+                                    <Span Text="Kodu değiştiremezsiniz." FontAttributes="Bold"/>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </Border>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ── AKSİYON BUTONLARI ── -->
+            <VerticalStackLayout Spacing="10" Padding="20,24,20,40">
+
+                <Button Text="Grubu Oluştur"
+                        Command="{Binding CreateCommand}"
+                        BackgroundColor="{Binding TypeColor}"
+                        TextColor="White"
+                        CornerRadius="14"
+                        HeightRequest="56"
+                        FontAttributes="Bold"
+                        FontSize="16"
+                        IsEnabled="{Binding CanCreate}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding IsLoading}" Value="True">
+                            <Setter Property="Text" Value="Oluşturuluyor..."/>
+                            <Setter Property="BackgroundColor" Value="#6B7280"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+
+                <Button Text="İptal"
+                        Command="{Binding CancelCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="#9CA3AF"
+                        FontSize="14"/>
+
             </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="15" Margin="0,10">
-
-                <Label Text="Dersin Adı" FontAttributes="Bold" Margin="5,0"/>
-                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Entry x:Name="CourseNameEntry" 
-                           Placeholder="Örn: Görsel Programlama II" 
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
-
-                <Label Text="Ders Katılım Kodu (6 Hane)" FontAttributes="Bold" Margin="5,0"/>
-                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Entry x:Name="CourseCodeEntry" 
-                           Placeholder="Örn: GUM123" 
-                           MaxLength="6"
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
-
-                <Label Text="Öğretim Görevlisi" FontAttributes="Bold" Margin="5,0"/>
-                <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0">
-                    <Entry x:Name="LecturerNameEntry" 
-                           Placeholder="Ad Soyad" 
-                           HeightRequest="50" 
-                           Margin="10,0" />
-                </Frame>
-
-            </VerticalStackLayout>
-
-            <Button Text="Grubu Aktif Et ve Başlat" 
-                    BackgroundColor="#1B305E" 
-                    TextColor="White" 
-                    CornerRadius="10" 
-                    HeightRequest="55" 
-                    FontAttributes="Bold"
-                    Clicked="OnCreateCourseClicked" />
-
-            <Label Text="* Bu grup oluşturulduğunda katılım kodu öğrencilerle paylaşılmaya hazır olacaktır." 
-                   FontSize="11" 
-                   TextColor="Gray" 
-                   HorizontalTextAlignment="Center" />
 
         </VerticalStackLayout>
     </ScrollView>
+
 </ContentPage>

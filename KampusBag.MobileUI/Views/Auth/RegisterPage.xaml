@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="KampusBag.MobileUI.Views.Auth.RegisterPage"
              BackgroundColor="{AppThemeBinding Light=White, Dark=#121212}"
-             Title="Kayıt Ol">
+             Title="Kayıt Ol"
+             Shell.NavBarIsVisible="False">
 
     <ScrollView>
         <VerticalStackLayout Spacing="0" Padding="28" VerticalOptions="Center">

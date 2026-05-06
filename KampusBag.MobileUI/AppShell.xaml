@@ -7,7 +7,8 @@
     xmlns:profile="clr-namespace:KampusBag.MobileUI.Views.Profile"
     Shell.FlyoutBehavior="Flyout"
     FlyoutBackgroundColor="{AppThemeBinding Light=#1B305E, Dark=#0D1B35}"
-    Title="KampusBag">
+    Title="KampusBag"
+    Shell.NavBarIsVisible="False">
 
     <Shell.Resources>
         <ResourceDictionary>
@@ -89,13 +90,13 @@
                            FontAttributes="Bold"
                            TextColor="White"/>
                 </Frame>
-                <BoxView HeightRequest="1" Color="#FFFFFF25" Margin="0,24,0,0"/>
+                <BoxView HeightRequest="1" Color="#FFF" Margin="0,36,0,0"/>
             </VerticalStackLayout>
         </Grid>
     </Shell.FlyoutHeader>
 
     <!-- ════════════════════════════════════════
-         FLYOUT FOOTER[cite: 1, 2]
+         FLYOUT FOOTER — Güvenli Çıkış Butonu
     ════════════════════════════════════════ -->
     <Shell.FlyoutFooter>
         <Grid BackgroundColor="{AppThemeBinding Light=#0F2040, Dark=#060D1A}" Padding="20,16">
@@ -124,13 +125,23 @@
     <FlyoutItem Title="Çalışma Odaları">
         <ShellContent Route="studyrooms" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
     </FlyoutItem>
+    
+    <!-- Sadece Hoca (2) ve Admin (4) görebilir -->
+    <FlyoutItem Title="Ders Odası Oluştur"
+            IsVisible="{Binding IsTeacherOrAdmin}">
+        <ShellContent ContentTemplate="{DataTemplate chats:CreateCoursePage}"/>
+    </FlyoutItem>
 
+    <!-- Sadece Temsilci (3) görebilir -->
+    <FlyoutItem Title="Çalışma Odası Oluştur"
+            IsVisible="{Binding IsRepresentative}">
+        <ShellContent ContentTemplate="{DataTemplate chats:CreateCoursePage}"/>
+    </FlyoutItem>
+    
     <FlyoutItem Title="Özel Mesajlar">
         <ShellContent Route="privatemessages" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
     </FlyoutItem>
-
-    <MenuItem Text="────────────" IsEnabled="False"/>
-
+   
     <FlyoutItem Title="Profilim">
         <ShellContent ContentTemplate="{DataTemplate profile:ProfilePage}"/>
     </FlyoutItem>

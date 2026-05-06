@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:KampusBag.MobileUI"
              x:Class="KampusBag.MobileUI.App"
-             xmlns:converters="clr-namespace:KampusBag.MobileUI.Converters" > 
+             xmlns:converters="clr-namespace:KampusBag.MobileUI.Converters"
+             Shell.NavBarIsVisible="False"> 
 
     <Application.Resources>
         <ResourceDictionary>
@@ -11,9 +12,13 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
- 
-            <converters:InvertBoolConverter    x:Key="InvertBool"/>
+
+            <!-- Converter Kayıtları -->
+            <converters:InvertBoolConverter          x:Key="InvertBool"/>
             <converters:ReadOnlyPlaceholderConverter x:Key="ReadOnlyPlaceholder"/>
+            <converters:BoolToSendIconConverter      x:Key="BoolToSendIcon"/>
+            <converters:BoolToSendColorConverter     x:Key="BoolToSendColor"/>
+            <converters:BoolToColorConverter         x:Key="BoolToColor"/>
 
         </ResourceDictionary>
     </Application.Resources> 
