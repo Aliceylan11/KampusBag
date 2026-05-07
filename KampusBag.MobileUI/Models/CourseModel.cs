@@ -7,14 +7,13 @@ public class CourseModel
     public string CourseCode { get; set; } = string.Empty;
     public string AcademicName { get; set; } = string.Empty;
     public int MemberCount { get; set; }
-    public bool IsRepresentative { get; set; }
+    public bool IsOfficial { get; set; }
 
     // Computed
     public string TypeLabel
-        => IsRepresentative ? "📚 Çalışma Odası" : "🏛️ Resmi Kanal";
-
+        => IsOfficial ? "🏛️ Resmi Kanal" : "📚 Çalışma Odası";
     public string TypeColor
-        => IsRepresentative ? "#059669" : "#1B305E";
+        => IsOfficial ? "#059669" : "#1B305E";
 
     public string MemberText
         => MemberCount == 1 ? "1 üye" : $"{MemberCount} üye";

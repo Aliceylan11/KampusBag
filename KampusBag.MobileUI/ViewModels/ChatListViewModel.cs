@@ -66,8 +66,7 @@ public class ChatListViewModel : INotifyPropertyChanged
                 HasError = true;
                 ErrorMessage = result.Error;
                 return;
-            }
-
+            } 
             // Ham listelere kaydet
             _allOfficials = result.OfficialChannels;
             _allStudy = result.StudyRooms;

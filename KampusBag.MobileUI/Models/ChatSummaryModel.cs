@@ -20,6 +20,7 @@ public class ChatSummaryModel
     public bool IsSilentMode { get; set; }
     public bool IsLocked { get; set; }
     public bool HasEmergency { get; set; }
+    public bool IsOfficial { get; set; }
 
     // ── Hedef ─────────────────────────────────────────────────────────
     public Guid? OtherUserId { get; set; }
@@ -27,8 +28,7 @@ public class ChatSummaryModel
     public Guid? CourseId { get; set; }
 
     // ── Computed — XAML Binding ────────────────────────────────────────
-
-    // "Musa Kaya 🌙" veya "Musa Kaya"
+     
     public string DisplayNameWithIcon
         => IsSilentMode ? $"{DisplayName} 🌙" : DisplayName;
 

@@ -32,6 +32,7 @@ public class ChatSummaryDto
     // ── Ders Alanları ──────────────────────────────────────────────────
     public Guid? CourseId { get; set; }
     public bool IsLocked { get; set; }    // Resmi kanal kilitli mi?
+    public bool IsOfficial { get; set; }
 
     // ── Durum Bayrakları ───────────────────────────────────────────────
     public bool IsSilentMode { get; set; }    // 17:00 sonrası + akademisyen
