@@ -2,6 +2,8 @@
 using KampusBag.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using KampusBag.Core.DTOs;
+using KampusBag.Core.Enums;
+
 namespace KampusBag.WebAPI.Controllers;
 
 [ApiController]
@@ -10,13 +12,15 @@ public class CoursesController : ControllerBase
 {
     private readonly IGenericRepository<Course> _courseRepository;
     private readonly IGenericRepository<CourseMembership> _membershipRepository;
-
+    private readonly IGenericRepository<User> _userRepository;
     public CoursesController(
         IGenericRepository<Course> courseRepository,
-        IGenericRepository<CourseMembership> membershipRepository)
+        IGenericRepository<CourseMembership> membershipRepository,
+        IGenericRepository<User> userRepository)
     {
         _courseRepository = courseRepository;
         _membershipRepository = membershipRepository;
+        _userRepository = userRepository;
     }
 
     [HttpPost("create")]
@@ -24,12 +28,16 @@ public class CoursesController : ControllerBase
     {
         try
         {
+            var user = await _userRepository.GetByIdAsync(dto.AcademicId);
             // 1. Yeni ders nesnesini oluştur
             var newCourse = new Course
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
-                CourseCode = dto.CourseCode.ToUpper()
+                CourseCode = dto.CourseCode.ToUpper(),
+                AcademicId = dto.AcademicId,
+                IsOfficial = user != null && user.Role == (UserRole)2 // Sadece rolü 2 (Hoca) olan kullanıcılar resmi ders oluşturabilir
+
             };
 
             // 2. Veritabanına kaydet
@@ -56,5 +64,42 @@ public class CoursesController : ControllerBase
         {
             return BadRequest(new { message = $"Ders oluşturulurken hata: {ex.Message}" });
         }
+    }
+    [HttpPost("join")]
+    public async Task<IActionResult> JoinCourse([FromBody] JoinCourseDto dto)
+    {
+        try
+        {
+            // 1. Dersi kodundan bul 
+            var courses = await _courseRepository.FindAsync(c => c.CourseCode == dto.CourseCode.ToUpper());
+            var course = courses.FirstOrDefault();
+            if (course == null)
+                return NotFound(new { message = "Bu koda sahip bir ders bulunamadı." });
+
+            // 2. Kullanıcıyı derse ekle
+            var membership = new CourseMembership
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                UserId = dto.UserId,
+                JoinDate = DateTime.UtcNow,
+                IsRepresentative = false
+            };
+
+            await _membershipRepository.AddAsync(membership);
+
+            return Ok(new { message = "Derse başarıyla katıldınız!" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Derse katılırken hata oluştu: {ex.Message}" });
+        }
+    }
+
+    // Dosyanın en altındaki DTO sınıflarının arasına bunu da ekle:
+    public class JoinCourseDto
+    {
+        public string CourseCode { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
     }
 }

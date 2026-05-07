@@ -11,6 +11,7 @@ namespace KampusBag.Core.Entities
         public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; }
         public string CourseCode { get; set; }
+        public bool IsOfficial { get; set; }
 
         // Dersi veren hoca
         public Guid AcademicId { get; set; }

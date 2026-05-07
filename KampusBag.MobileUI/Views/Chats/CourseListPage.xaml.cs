@@ -25,7 +25,7 @@ public partial class CourseListPage : ContentPage
     {
         if (e.Parameter is not CourseModel course) return;
 
-        // Öğrenci ise ve temsilci değilse salt okunur moduna al (Role 1 = Öğrenci varsayımı)[cite: 1]
+        // Öğrenci ise ve temsilci değilse salt okunur moduna al 
         bool isReadOnly = !course.IsRepresentative && ApiService.Session.Role == 1;
 
         await Navigation.PushAsync(new ChatDetailPage(

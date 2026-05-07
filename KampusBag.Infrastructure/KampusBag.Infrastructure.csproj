@@ -21,4 +21,8 @@
     <ProjectReference Include="..\KampusBag.Core\KampusBag.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

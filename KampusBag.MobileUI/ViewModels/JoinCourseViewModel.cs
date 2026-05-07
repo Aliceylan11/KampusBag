@@ -17,10 +17,10 @@ public class JoinCourseViewModel : INotifyPropertyChanged
     public string CourseCode
     {
         get => _courseCode;
-        set { Set(ref _courseCode, value.ToUpper()); OnPropertyChanged(nameof(CanJoin)); }
+        set { Set(ref _courseCode, value.ToUpper()); OnPropertyChanged(nameof(CanJoin)); (JoinCommand as Command)?.ChangeCanExecute(); }
     }
 
-    public bool IsLoading { get => _isLoading; set { Set(ref _isLoading, value); OnPropertyChanged(nameof(CanJoin)); } }
+    public bool IsLoading { get => _isLoading; set { Set(ref _isLoading, value); OnPropertyChanged(nameof(CanJoin)); (JoinCommand as Command)?.ChangeCanExecute(); } }
     public bool CanJoin => CourseCode.Length == 6 && !IsLoading;
 
     // ── Komutlar ─────────────────────────────────────────────────────

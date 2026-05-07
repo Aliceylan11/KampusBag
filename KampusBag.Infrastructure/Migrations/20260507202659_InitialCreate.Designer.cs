@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KampusBag.Infrastructure.Migrations
 {
     [DbContext(typeof(KampusBagDbContext))]
-    [Migration("20260312070255_UpdateMessageEntity")]
-    partial class UpdateMessageEntity
+    [Migration("20260507202659_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -38,6 +38,9 @@ namespace KampusBag.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsOfficial")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -47,15 +50,6 @@ namespace KampusBag.Infrastructure.Migrations
                     b.HasIndex("AcademicId");
 
                     b.ToTable("Courses");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("40849a48-a3a9-402c-bffe-a29737ea59ca"),
-                            AcademicId = new Guid("55e6adf8-d4da-4656-bf78-e7d30a489bdb"),
-                            CourseCode = "BGM301",
-                            Name = "Mobil Programlama (.NET MAUI)"
-                        });
                 });
 
             modelBuilder.Entity("KampusBag.Core.Entities.CourseMembership", b =>
@@ -69,6 +63,9 @@ namespace KampusBag.Infrastructure.Migrations
 
                     b.Property<bool>("IsRepresentative")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime>("JoinDate")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -126,6 +123,12 @@ namespace KampusBag.Infrastructure.Migrations
                     b.Property<bool>("IsEmergency")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSilent")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("ReceiverId")
                         .HasColumnType("uuid");
 
@@ -161,6 +164,13 @@ namespace KampusBag.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("RegistrationNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -168,32 +178,15 @@ namespace KampusBag.Infrastructure.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
+                    b.Property<string>("VerificationCode")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RegistrationNumber")
                         .IsUnique();
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("55e6adf8-d4da-4656-bf78-e7d30a489bdb"),
-                            CreatedAt = new DateTime(2026, 3, 12, 7, 2, 55, 91, DateTimeKind.Utc).AddTicks(5000),
-                            Email = "nihat@gumushane.edu.tr",
-                            FullName = "Nihat Özdemir",
-                            RegistrationNumber = "SICIL-789",
-                            Role = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("a149ece9-3537-4860-bf4d-56a297e50b84"),
-                            CreatedAt = new DateTime(2026, 3, 12, 7, 2, 55, 91, DateTimeKind.Utc).AddTicks(5064),
-                            Email = "2411081054@ogr.gumushane.edu.tr",
-                            FullName = "Ali Ceylan",
-                            RegistrationNumber = "2411081054",
-                            Role = 3
-                        });
                 });
 
             modelBuilder.Entity("KampusBag.Core.Entities.Course", b =>
@@ -210,7 +203,7 @@ namespace KampusBag.Infrastructure.Migrations
             modelBuilder.Entity("KampusBag.Core.Entities.CourseMembership", b =>
                 {
                     b.HasOne("KampusBag.Core.Entities.Course", "Course")
-                        .WithMany()
+                        .WithMany("CourseMemberships")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -252,6 +245,11 @@ namespace KampusBag.Infrastructure.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("KampusBag.Core.Entities.Course", b =>
+                {
+                    b.Navigation("CourseMemberships");
                 });
 #pragma warning restore 612, 618
         }

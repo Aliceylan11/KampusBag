@@ -458,7 +458,7 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/courses/create", new
+            var response = await _httpClient.PostAsJsonAsync("courses/create", new
             {
                 Name = name,
                 CourseCode = courseCode.ToUpper(),

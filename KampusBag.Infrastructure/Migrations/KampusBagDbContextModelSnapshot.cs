@@ -35,7 +35,7 @@ namespace KampusBag.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsRead")
+                    b.Property<bool>("IsOfficial")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
