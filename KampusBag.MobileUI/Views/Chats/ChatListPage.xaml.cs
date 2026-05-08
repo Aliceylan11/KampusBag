@@ -21,18 +21,26 @@ public partial class ChatListPage : ContentPage
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
         => _vm.SearchCommand.Execute(e.NewTextValue);
+
     private async void OnSearchUserClicked(object sender, EventArgs e)
-    => await Navigation.PushAsync(new SearchUserPage());
+        => await Navigation.PushAsync(new SearchUserPage());
+
     private async void OnJoinCourseClicked(object sender, EventArgs e)
         => await Navigation.PushModalAsync(new JoinCoursePage());
 
-    // ── Resmi Kanal Tıklama ───────────────────────────────────────────
+    // ── Resmi Kanal tıklama ───────────────────────────────────────────
     private async void OnOfficialChannelTapped(object sender, TappedEventArgs e)
     {
         if (e.Parameter is not ChatSummaryModel item) return;
 
-        // Öğrenci → sadece okuyabilir
-        bool canWrite = ApiService.Session.Role is 2 or 3;
+        // Resmi kanala yazma yetkisi:
+        // - Akademisyen (Role=2) → her zaman yazabilir
+        // - Temsilci (Role=3)    → yazabilir
+        // - Admin (Role=4)       → yazabilir
+        // - IsUserRepresentative → temsilci atanmış öğrenci yazabilir
+        // - Diğer öğrenciler     → sadece okuyabilir (isReadOnly=true)
+        bool canWrite = ApiService.Session.Role is 2 or 3 or 4
+                     || item.IsUserRepresentative;
 
         await Navigation.PushAsync(new ChatDetailPage(
             chatName: item.DisplayName,
@@ -43,11 +51,12 @@ public partial class ChatListPage : ContentPage
         ));
     }
 
-    // ── Çalışma Odası Tıklama ─────────────────────────────────────────
+    // ── Çalışma Odası tıklama ─────────────────────────────────────────
     private async void OnStudyRoomTapped(object sender, TappedEventArgs e)
     {
         if (e.Parameter is not ChatSummaryModel item) return;
 
+        // Çalışma odalarına herkes yazabilir
         await Navigation.PushAsync(new ChatDetailPage(
             chatName: item.DisplayName,
             courseId: item.CourseId,
@@ -57,19 +66,18 @@ public partial class ChatListPage : ContentPage
         ));
     }
 
-    // ── Özel Mesaj Tıklama (Sessiz Mod Uyarısı) ───────────────────────
+    // ── Özel Mesaj tıklama (Sessiz Mod uyarısı) ───────────────────────
     private async void OnPrivateChatTapped(object sender, TappedEventArgs e)
     {
         if (e.Parameter is not ChatSummaryModel item) return;
 
-        // Sessiz Mod Uyarısı
         if (item.IsSilentMode)
         {
             bool proceed = await DisplayAlert(
                 "🌙 Sessiz Mod Aktif",
-                $"{item.DisplayName} şu an sessiz mod saatlerinde (17:00 sonrası).\n\n" +
-                "Normal mesajınız iletilecek ancak bildirim gönderilmeyecek. " +
-                "Acil durumlar için 🚨 butonunu kullanın.",
+                $"{item.DisplayName} şu an sessiz mod saatlerinde (17:00 sonrası).\n\n"
+                + "Normal mesajınız iletilecek ancak bildirim gönderilmeyecek. "
+                + "Acil durumlar için 🚨 butonunu kullanın.",
                 "Devam Et",
                 "İptal");
 
@@ -85,7 +93,7 @@ public partial class ChatListPage : ContentPage
         ));
     }
 
-    // ── Yeni Sohbet ───────────────────────────────────────────────────
+    // ── Yeni sohbet (FAB / ✏️ butonu) ────────────────────────────────
     private async void OnNewChatClicked(object sender, EventArgs e)
     {
         var options = ApiService.Session.Role switch

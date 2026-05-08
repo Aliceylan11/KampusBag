@@ -33,7 +33,7 @@ public class CourseListViewModel : INotifyPropertyChanged
         set { Set(ref _searchText, value); FilterCourses(); }
     }
 
-    // Rol kontrolü: Akademisyen veya Temsilci yeni ders açabilir
+    // Akademisyen veya Temsilci veya Admin yeni ders açabilir
     public bool CanCreateCourse => ApiService.Session.Role is 2 or 3 or 4;
 
     // ── Komutlar ─────────────────────────────────────────────────────
@@ -80,6 +80,30 @@ public class CourseListViewModel : INotifyPropertyChanged
     }
 
     // ════════════════════════════════════════════════════════════════
+    // TEMSİLCİ ATAMA / GERI ALMA
+    // Sadece Akademisyen (Role=2) ve Admin (Role=4) çağırabilir.
+    // ════════════════════════════════════════════════════════════════
+    public async Task<string> AssignRepresentativeAsync(
+        Guid courseId, Guid studentId, bool revoke)
+    {
+        var (success, message) = await _api.AssignRepresentativeAsync(
+            courseId, studentId, revoke);
+
+        if (success)
+            await LoadCoursesAsync(); // Listeyi güncelle
+
+        return message;
+    }
+
+    /// <summary>
+    /// Verilen dersin üye listesini getirir.
+    /// Akademisyen, temsilci atamadan önce bu listeyi çeker.
+    /// </summary>
+    public async Task<(bool success, List<CourseMemberModel> members, string error)>
+        GetCourseMembersAsync(Guid courseId)
+        => await _api.GetCourseMembersAsync(courseId);
+
+    // ════════════════════════════════════════════════════════════════
     // ARAMA FİLTRE
     // ════════════════════════════════════════════════════════════════
     private void FilterCourses()
@@ -101,11 +125,13 @@ public class CourseListViewModel : INotifyPropertyChanged
 
     // ── INotifyPropertyChanged ────────────────────────────────────────
     public event PropertyChangedEventHandler? PropertyChanged;
+
     private void Set<T>(ref T f, T v, [CallerMemberName] string? n = null)
     {
         if (EqualityComparer<T>.Default.Equals(f, v)) return;
         f = v; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
+
     protected void OnPropertyChanged([CallerMemberName] string? n = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }

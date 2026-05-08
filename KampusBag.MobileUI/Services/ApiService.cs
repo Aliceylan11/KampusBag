@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using KampusBag.Core.DTOs;
 using KampusBag.MobileUI.Models;
+
 namespace KampusBag.MobileUI.Services;
 
 public class ApiService
@@ -16,7 +17,7 @@ public class ApiService
     private const string BaseUrl = "http://localhost:5178/api/";
 #endif
 
-    // ── Session ────────────────────────────────────────────────────────
+    // ── Oturum ────────────────────────────────────────────────────────
     public static class Session
     {
         public static Guid UserId { get; set; }
@@ -45,7 +46,7 @@ public class ApiService
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // AUTH METODLARI
+    // AUTH
     // ══════════════════════════════════════════════════════════════════
 
     public async Task<bool> RegisterAsync(UserRegisterDto dto)
@@ -63,7 +64,7 @@ public class ApiService
         try
         {
             var response = await _httpClient
-                .PostAsync($"users/verify?email={email}&code={code}", null);
+                .PostAsync($"users/verify?email={Uri.EscapeDataString(email)}&code={code}", null);
             return await response.Content.ReadAsStringAsync();
         }
         catch (Exception ex) { return $"Hata: {ex.Message}"; }
@@ -80,9 +81,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var parsed = JsonSerializer.Deserialize<LoginResponse>(
-                    content, _jsonOptions);
-
+                var parsed = JsonSerializer.Deserialize<LoginResponse>(content, _jsonOptions);
                 if (parsed?.User != null)
                 {
                     Session.UserId = parsed.User.Id;
@@ -108,8 +107,7 @@ public class ApiService
                 .PostAsJsonAsync("users/forgot-password", new { Email = email });
             var result = JsonSerializer.Deserialize<MessageResponse>(
                 await response.Content.ReadAsStringAsync(), _jsonOptions);
-            return (response.IsSuccessStatusCode,
-                    result?.Message ?? "İşlem tamamlandı.");
+            return (response.IsSuccessStatusCode, result?.Message ?? "İşlem tamamlandı.");
         }
         catch (Exception ex) { return (false, $"Bağlantı hatası: {ex.Message}"); }
     }
@@ -124,18 +122,15 @@ public class ApiService
                 new { Email = email, Code = code, NewPassword = newPassword });
             var result = JsonSerializer.Deserialize<MessageResponse>(
                 await response.Content.ReadAsStringAsync(), _jsonOptions);
-            return (response.IsSuccessStatusCode,
-                    result?.Message ?? "İşlem tamamlandı.");
+            return (response.IsSuccessStatusCode, result?.Message ?? "İşlem tamamlandı.");
         }
         catch (Exception ex) { return (false, $"Bağlantı hatası: {ex.Message}"); }
     }
-
 
     // ══════════════════════════════════════════════════════════════════
     // KULLANICI ARAMA
     // ══════════════════════════════════════════════════════════════════
 
-    /// <summary>İsim veya öğrenci numarasıyla kullanıcı arar.</summary>
     public async Task<(bool success, List<UserSearchModel> users, string error)>
         SearchUsersAsync(string query)
     {
@@ -143,7 +138,6 @@ public class ApiService
         {
             var response = await _httpClient.GetAsync(
                 $"users/search?term={Uri.EscapeDataString(query)}");
-
             var content = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -153,7 +147,6 @@ public class ApiService
             }
 
             var parsed = JsonSerializer.Deserialize<List<UserApiModel>>(content, _jsonOptions);
-
             var users = (parsed ?? new()).Select(u => new UserSearchModel
             {
                 Id = u.Id,
@@ -172,10 +165,11 @@ public class ApiService
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PROFİL BİLGİLERİ
+    // PROFİL
     // ══════════════════════════════════════════════════════════════════
 
-    public async Task<(bool success, UserProfileModel? user, string error)> GetProfileAsync(Guid userId)
+    public async Task<(bool success, UserProfileModel? user, string error)>
+        GetProfileAsync(Guid userId)
     {
         try
         {
@@ -185,7 +179,7 @@ public class ApiService
             if (!response.IsSuccessStatusCode)
             {
                 var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
-                return (false, null, err?.Message ?? "Profil bilgileri alınamadı.");
+                return (false, null, err?.Message ?? "Profil alınamadı.");
             }
 
             var profile = JsonSerializer.Deserialize<UserProfileModel>(content, _jsonOptions);
@@ -198,19 +192,14 @@ public class ApiService
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // CHAT LİSTE & GEÇMİŞ
+    // SOHBET LİSTESİ & GEÇMİŞ
     // ══════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Kullanıcının tüm sohbet özetlerini getirir.
-    /// Son mesajları otomatik olarak AES-256 ile çözer.
-    /// </summary>
     public async Task<ChatListResult> GetChatListAsync(Guid userId)
     {
         try
         {
             var response = await _httpClient.GetAsync($"messages/chats/{userId}");
-
             if (!response.IsSuccessStatusCode)
                 return ChatListResult.Fail("Sohbet listesi alınamadı.");
 
@@ -231,9 +220,6 @@ public class ApiService
         }
     }
 
-    /// <summary>
-    /// Belirli bir sohbetin mesaj geçmişini getirir.
-    /// </summary>
     public async Task<(bool success, List<MessageModel> messages, string error)>
         GetChatHistoryAsync(Guid userId, Guid? otherUserId, Guid? courseId)
     {
@@ -254,11 +240,7 @@ public class ApiService
 
             var parsed = JsonSerializer.Deserialize<HistoryResponse>(content, _jsonOptions);
             var messages = (parsed?.Data ?? new())
-                .Select(m =>
-                {
-                    m.Content = _encryption.Decrypt(m.Content);
-                    return m;
-                })
+                .Select(m => { m.Content = _encryption.Decrypt(m.Content); return m; })
                 .OrderBy(m => m.SentAt)
                 .ToList();
 
@@ -271,13 +253,9 @@ public class ApiService
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // MESAJ GÖNDER — 422 Acil Hak Yönetimi
+    // MESAJ GÖNDER
     // ══════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Mesaj gönderir. 422 hatası → acil hak bitti uyarısı.
-    /// İçeriği şifreleyerek gönderir.
-    /// </summary>
     public async Task<SendMessageResult> SendMessageAsync(
         Guid? receiverId,
         Guid? courseId,
@@ -286,9 +264,7 @@ public class ApiService
     {
         try
         {
-            // İçeriği şifrele
             string encrypted = _encryption.Encrypt(content);
-
             var dto = new
             {
                 SenderId = Session.UserId,
@@ -301,12 +277,9 @@ public class ApiService
             var response = await _httpClient.PostAsJsonAsync("messages/send", dto);
             var body = await response.Content.ReadAsStringAsync();
 
-            // ── 200 OK ──────────────────────────────────────────────
             if (response.IsSuccessStatusCode)
             {
-                var result = JsonSerializer.Deserialize<SendMessageResponse>(
-                    body, _jsonOptions);
-
+                var result = JsonSerializer.Deserialize<SendMessageResponse>(body, _jsonOptions);
                 return new SendMessageResult
                 {
                     Success = true,
@@ -315,7 +288,6 @@ public class ApiService
                 };
             }
 
-            // ── 422 Unprocessable: Acil hak bitti ───────────────────
             if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
             {
                 var err = JsonSerializer.Deserialize<ErrorResponse>(body, _jsonOptions);
@@ -323,22 +295,17 @@ public class ApiService
                 {
                     Success = false,
                     IsRightsDepleted = true,
-                    StatusMsg = err?.Message
-                                    ?? "Acil mesaj hakkınız doldu. Bu dönem için 3 hakkınızı kullandınız."
+                    StatusMsg = err?.Message ?? "Acil mesaj hakkınız doldu."
                 };
             }
 
-            // ── 403 Forbidden: Yetkisiz kanal ───────────────────────
             if (response.StatusCode == HttpStatusCode.Forbidden)
-            {
                 return new SendMessageResult
                 {
                     Success = false,
                     StatusMsg = "Bu kanala mesaj gönderme yetkiniz yok."
                 };
-            }
 
-            // ── Diğer hatalar ────────────────────────────────────────
             var genericErr = JsonSerializer.Deserialize<ErrorResponse>(body, _jsonOptions);
             return new SendMessageResult
             {
@@ -364,27 +331,19 @@ public class ApiService
         }
     }
 
-    /// <summary>
-    /// Kalan acil mesaj hakkını getirir.
-    /// </summary>
     public async Task<(bool success, int remaining)> GetEmergencyRightsAsync(Guid userId)
     {
         try
         {
             var response = await _httpClient.GetAsync($"messages/rights/{userId}");
             if (!response.IsSuccessStatusCode) return (false, 0);
-
             var parsed = JsonSerializer.Deserialize<RightsResponse>(
                 await response.Content.ReadAsStringAsync(), _jsonOptions);
-
             return (true, parsed?.Remaining ?? 0);
         }
         catch { return (false, 0); }
     }
 
-    /// <summary>
-    /// Sohbete girilince mesajları okundu işaretler.
-    /// </summary>
     public async Task MarkAsReadAsync(Guid? senderId, Guid? courseId)
     {
         try
@@ -392,23 +351,22 @@ public class ApiService
             string query = courseId.HasValue
                 ? $"messages/read?userId={Session.UserId}&courseId={courseId}"
                 : $"messages/read?userId={Session.UserId}&senderId={senderId}";
-
             await _httpClient.PatchAsync(query, null);
         }
-        catch { /* Okundu işaretleme kritik değil, sessizce geç */ }
+        catch { /* Kritik değil, sessizce geç */ }
     }
 
     // ══════════════════════════════════════════════════════════════════
     // DERS METODLARI
     // ══════════════════════════════════════════════════════════════════
 
-    /// <summary>Kullanıcının üye olduğu tüm dersleri getirir.</summary>
     public async Task<CourseListResult> GetMyCoursesAsync(Guid userId)
     {
         try
         {
+            // DÜZELTME: Önceki kod "courses/my/{userId}" çağırıyordu
+            // ancak CoursesController'da bu endpoint eksikti. Artık mevcut.
             var response = await _httpClient.GetAsync($"courses/my/{userId}");
-
             if (!response.IsSuccessStatusCode)
                 return CourseListResult.Fail("Dersler alınamadı.");
 
@@ -422,7 +380,8 @@ public class ApiService
                 CourseCode = c.CourseCode,
                 AcademicName = c.AcademicName,
                 MemberCount = c.MemberCount,
-                IsRepresentative = c.IsRepresentative
+                IsRepresentative = c.IsRepresentative,
+                IsOfficial = c.IsOfficial       // YENİ: IsOfficial alanı eklendi
             }).ToList();
 
             return new CourseListResult { Success = true, Courses = courses };
@@ -433,7 +392,6 @@ public class ApiService
         }
     }
 
-    /// <summary>Derse katıl — kod ile.</summary>
     public async Task<(bool success, string message)> JoinCourseAsync(string courseCode)
     {
         try
@@ -441,6 +399,69 @@ public class ApiService
             var response = await _httpClient.PostAsJsonAsync(
                 "courses/join",
                 new { CourseCode = courseCode.ToUpper(), UserId = Session.UserId });
+            var content = await response.Content.ReadAsStringAsync();
+            var parsed = JsonSerializer.Deserialize<MessageResponse>(content, _jsonOptions);
+            return (response.IsSuccessStatusCode, parsed?.Message ?? "İşlem tamamlandı.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}");
+        }
+    }
+
+    public async Task<(bool success, string message, Guid? courseId)>
+        CreateCourseAsync(string name, string courseCode)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("courses/create", new
+            {
+                Name = name,
+                CourseCode = courseCode.ToUpper(),
+                AcademicId = Session.UserId
+            });
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (string.IsNullOrWhiteSpace(content))
+                return (response.IsSuccessStatusCode,
+                        response.IsSuccessStatusCode
+                            ? "Ders başarıyla oluşturuldu."
+                            : "Sunucudan boş yanıt geldi.",
+                        null);
+
+            var parsed = JsonSerializer.Deserialize<CreateCourseResponse>(content, _jsonOptions);
+            return (response.IsSuccessStatusCode,
+                    parsed?.Message ?? "İşlem tamamlandı",
+                    parsed?.CourseId);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}", null);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // TEMSİLCİ ATAMA
+    // ══════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Dersin sahibi hoca, bir öğrenciyi temsilci olarak atar veya
+    /// temsilciliğini geri alır.
+    /// </summary>
+    public async Task<(bool success, string message)> AssignRepresentativeAsync(
+        Guid courseId, Guid studentId, bool revoke = false)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"courses/{courseId}/assign-representative",
+                new
+                {
+                    AcademicId = Session.UserId,
+                    StudentId = studentId,
+                    Revoke = revoke
+                });
 
             var content = await response.Content.ReadAsStringAsync();
             var parsed = JsonSerializer.Deserialize<MessageResponse>(content, _jsonOptions);
@@ -453,36 +474,38 @@ public class ApiService
         }
     }
 
-    /// <summary>Yeni ders oluştur (Akademisyen/Temsilci).</summary>
-    public async Task<(bool success, string message, Guid? courseId)> CreateCourseAsync(string name, string courseCode)
+    /// <summary>
+    /// Bir dersin üye listesini getirir (temsilci atama ekranı için).
+    /// </summary>
+    public async Task<(bool success, List<CourseMemberModel> members, string error)>
+        GetCourseMembersAsync(Guid courseId)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("courses/create", new
-            {
-                Name = name,
-                CourseCode = courseCode.ToUpper(),
-                AcademicId = Session.UserId // Giriş yapan hocanın ID'si
-            });
-
-            // 1. Önce ham metni oku
+            var response = await _httpClient.GetAsync($"courses/{courseId}/members");
             var content = await response.Content.ReadAsStringAsync();
 
-            // 2. İçerik boşsa JSON hatası almamak için erken dön
-            if (string.IsNullOrWhiteSpace(content))
+            if (!response.IsSuccessStatusCode)
             {
-                return (response.IsSuccessStatusCode,
-                        response.IsSuccessStatusCode ? "Ders başarıyla oluşturuldu." : "Sunucudan boş yanıt geldi.",
-                        null);
+                var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
+                return (false, new(), err?.Message ?? "Üyeler alınamadı.");
             }
 
-            // 3. İçerik doluysa deserialize et
-            var parsed = JsonSerializer.Deserialize<CreateCourseResponse>(content, _jsonOptions);
-            return (response.IsSuccessStatusCode, parsed?.Message ?? "İşlem tamamlandı", parsed?.CourseId);
+            var parsed = JsonSerializer.Deserialize<MembersResponse>(content, _jsonOptions);
+            var members = (parsed?.Members ?? new()).Select(m => new CourseMemberModel
+            {
+                UserId = m.UserId,
+                FullName = m.FullName,
+                Email = m.Email,
+                Role = m.Role,
+                IsRepresentative = m.IsRepresentative
+            }).ToList();
+
+            return (true, members, string.Empty);
         }
         catch (Exception ex)
         {
-            return (false, $"Bağlantı hatası: {ex.Message}", null);
+            return (false, new(), $"Bağlantı hatası: {ex.Message}");
         }
     }
 
@@ -490,8 +513,7 @@ public class ApiService
     // YARDIMCI METODLAR
     // ══════════════════════════════════════════════════════════════════
 
-    private List<ChatSummaryModel> DecryptList(
-        List<ChatSummaryApiModel>? apiModels)
+    private List<ChatSummaryModel> DecryptList(List<ChatSummaryApiModel>? apiModels)
     {
         if (apiModels == null) return new();
 
@@ -505,13 +527,14 @@ public class ApiService
             UnreadCount = m.UnreadCount,
             IsSilentMode = m.IsSilentMode,
             IsLocked = m.IsLocked,
+            IsOfficial = m.IsOfficial,          // YENİ
+            IsUserRepresentative = m.IsUserRepresentative, // YENİ
             HasEmergency = m.IsEmergency,
             OtherUserId = m.OtherUserId,
             OtherUserRole = m.OtherUserRole,
             CourseId = m.CourseId,
-            // Avatar
             AvatarInitial = string.IsNullOrEmpty(m.DisplayName)
-                            ? "?" : m.DisplayName[0].ToString().ToUpper(),
+                                   ? "?" : m.DisplayName[0].ToString().ToUpper(),
             AvatarColor = m.OtherUserRole switch
             {
                 2 => "#1B305E",
@@ -521,13 +544,13 @@ public class ApiService
         }).ToList();
     }
 
-    // ── JSON Seçenekleri ──────────────────────────────────────────────
+    // ── JSON seçenekleri ──────────────────────────────────────────────
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    // ── Private Response Modelleri ────────────────────────────────────
+    // ── Private response modelleri ────────────────────────────────────
     private record LoginResponse(string? Message, UserInfo? User);
     private record UserInfo(Guid Id, string Email, string FullName,
                             string RegistrationNumber, int Role);
@@ -537,10 +560,12 @@ public class ApiService
         List<ChatSummaryApiModel>? OfficialChannels,
         List<ChatSummaryApiModel>? StudyRooms,
         List<ChatSummaryApiModel>? PrivateMessages);
-    private record HistoryResponse(string? Message, int Count,
-                                   List<MessageModel>? Data);
+    private record HistoryResponse(string? Message, int Count, List<MessageModel>? Data);
     private record SendMessageResponse(string? Message, MessageModel? Data);
     private record RightsResponse(string? Message, int Remaining, int MaxRights);
+    private record CourseListResponse(List<CourseApiModel>? Courses);
+    private record CreateCourseResponse(string? Message, Guid? CourseId);
+    private record MembersResponse(List<MemberApiModel>? Members);
 
     private class ChatSummaryApiModel
     {
@@ -553,46 +578,54 @@ public class ApiService
         public bool IsSilentMode { get; set; }
         public bool IsLocked { get; set; }
         public bool IsEmergency { get; set; }
+        public bool IsOfficial { get; set; }   // YENİ
+        public bool IsUserRepresentative { get; set; }   // YENİ
         public Guid? OtherUserId { get; set; }
         public int? OtherUserRole { get; set; }
         public Guid? CourseId { get; set; }
     }
-        // ── Private model (ApiService içindeki private bölüme ekleyin) ──────────
-      private class UserApiModel
-         {
-           public Guid   Id                 { get; set; }
-           public string FullName           { get; set; } = string.Empty;
-           public string Email              { get; set; } = string.Empty;
-           public string RegistrationNumber { get; set; } = string.Empty;
-           public int    Role               { get; set; }
-         }
 
-        // ── Private response modelleri (ApiService içindeki private bölüme ekleyin) ──
-     private record CourseListResponse(List<CourseApiModel>? Courses);
-     private record CreateCourseResponse(string? Message, Guid? CourseId);
-     private class CourseApiModel
-        {
-            public Guid   Id              { get; set; }
-            public string Name            { get; set; } = string.Empty;
-            public string CourseCode      { get; set; } = string.Empty;
-            public string AcademicName    { get; set; } = string.Empty;
-            public int    MemberCount     { get; set; }
-            public bool   IsRepresentative { get; set; }
-        }
+    private class UserApiModel
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string RegistrationNumber { get; set; } = string.Empty;
+        public int Role { get; set; }
+    }
 
-     // ── Sonuç modeli (ApiService dosyasının altına ekleyin) ──────────────────────
-     public class CourseListResult
-        {
-            public bool              Success { get; set; }
-            public string            Error   { get; set; } = string.Empty;
-            public List<CourseModel> Courses { get; set; } = new();
-            public static CourseListResult Fail(string e) => new() { Success = false, Error = e };
-         }
+    private class CourseApiModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string CourseCode { get; set; } = string.Empty;
+        public string AcademicName { get; set; } = string.Empty;
+        public int MemberCount { get; set; }
+        public bool IsRepresentative { get; set; }
+        public bool IsOfficial { get; set; }   // YENİ
+    }
 
+    private class MemberApiModel
+    {
+        public Guid UserId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public int Role { get; set; }
+        public bool IsRepresentative { get; set; }
+    }
 
+    // ── Public result modelleri ───────────────────────────────────────
+    public class CourseListResult
+    {
+        public bool Success { get; set; }
+        public string Error { get; set; } = string.Empty;
+        public List<CourseModel> Courses { get; set; } = new();
+        public static CourseListResult Fail(string e)
+            => new() { Success = false, Error = e };
+    }
 }
 
-// ── Sonuç Modelleri ───────────────────────────────────────────────────────
+// ── Dışarı açık sonuç modelleri ───────────────────────────────────────────
 public class SendMessageResult
 {
     public bool Success { get; set; }
@@ -611,4 +644,31 @@ public class ChatListResult
 
     public static ChatListResult Fail(string error)
         => new() { Success = false, Error = error };
+}
+
+/// <summary>Temsilci atama ekranı için ders üye modeli.</summary>
+public class CourseMemberModel
+{
+    public Guid UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public int Role { get; set; }
+    public bool IsRepresentative { get; set; }
+
+    public string RoleLabel => Role switch
+    {
+        1 => "Öğrenci",
+        2 => "Akademisyen",
+        3 => "Temsilci",
+        _ => "Kullanıcı"
+    };
+
+    public string AvatarInitial
+        => string.IsNullOrEmpty(FullName) ? "?" : FullName[0].ToString().ToUpper();
+
+    public string RepresentativeLabel
+        => IsRepresentative ? "Temsilciyi Geri Al" : "Temsilci Yap";
+
+    public string RepresentativeColor
+        => IsRepresentative ? "#DC2626" : "#059669";
 }

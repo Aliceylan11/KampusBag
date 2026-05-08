@@ -6,23 +6,21 @@ namespace KampusBag.MobileUI.Services;
 /// <summary>
 /// Backend'deki EncryptionHelper ile birebir uyumlu.
 /// Yapı: [16 byte IV] + [Şifreli Metin] → Base64
+///
+/// !! UYARI: Key sabiti KampusBag.Infrastructure/Helpers/EncryptionHelper.cs
+/// içindeki Key ile BİREBİR AYNI olmalıdır.
 /// </summary>
 public class EncryptionService
 {
     // Backend ile aynı sabit anahtar (32 karakter = AES-256)
-    private const string Key = "g6f3k9l2m5n8b1v4c7x0zQWERT123456";
+    private const string Key = "KampusBag@2025!SecureAES256Key#1"; // 32 karakter = AES-256
 
-    /// <summary>
-    /// Backend'den gelen Base64 string'i çözer.
-    /// İlk 16 byte = IV, geri kalan = şifreli metin.
-    /// </summary>
     public string Decrypt(string base64CipherText)
     {
         try
         {
             byte[] fullCipher = Convert.FromBase64String(base64CipherText);
 
-            // İlk 16 byte'ı IV olarak ayıkla
             byte[] iv = new byte[16];
             byte[] actualCipher = new byte[fullCipher.Length - 16];
 
@@ -48,21 +46,17 @@ public class EncryptionService
         }
     }
 
-    /// <summary>
-    /// Gönderim için metni şifreler.
-    /// Her çağrıda rastgele IV üretir (backend ile aynı yöntem).
-    /// </summary>
     public string Encrypt(string plainText)
     {
         using Aes aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(Key);
-        aes.GenerateIV();                          // Rastgele IV
+        aes.GenerateIV();
         byte[] iv = aes.IV;
 
         ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, iv);
 
         using MemoryStream ms = new();
-        ms.Write(iv, 0, iv.Length);                // İlk 16 byte = IV
+        ms.Write(iv, 0, iv.Length); // İlk 16 byte = IV
 
         using (CryptoStream cs = new(ms, encryptor, CryptoStreamMode.Write))
         using (StreamWriter sw = new(cs))

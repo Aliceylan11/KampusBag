@@ -18,18 +18,26 @@ public class KampusBagDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // 1. Mesaj ve Gönderici İlişkisi (Silme davranışını kısıtlıyoruz ki silinen kullanıcıların eski mesajları patlamasın)
+        // 1. Mesaj ve Gönderici İlişkisi
         modelBuilder.Entity<Message>()
             .HasOne(m => m.Sender)
             .WithMany()
             .HasForeignKey(m => m.SenderId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // 2. Acil Durum Hakkı - Kullanıcı İlişkisi (Birebir ilişki)
+        // 2. Acil Durum Hakkı - Kullanıcı İlişkisi
+        // DÜZELTME: WithOne → WithMany (bir kullanıcının her dönem için ayrı kaydı olabilir)
         modelBuilder.Entity<EmergencyRight>()
             .HasOne(er => er.User)
-            .WithOne()
-            .HasForeignKey<EmergencyRight>(er => er.UserId);
+            .WithMany() // Bir kullanıcının birden fazla hakkı olabilir (Bire-Çok)
+            .HasForeignKey(er => er.UserId); // <EmergencyRight> kısmını sildik
+
+
+        // DÜZELTME: Tek sütun unique → Bileşik unique (UserId + AcademicTerm)
+        // Bu sayede "2025-Güz" ve "2026-Bahar" için ayrı kayıt tutulabilir
+        modelBuilder.Entity<EmergencyRight>()
+            .HasIndex(er => new { er.UserId, er.AcademicTerm })
+            .IsUnique();
 
         // 3. Öğrenci Numarası (Sicil No) Kesinlikle Tekil Olmalı
         modelBuilder.Entity<User>()
@@ -40,7 +48,5 @@ public class KampusBagDbContext : DbContext
         modelBuilder.Entity<CourseMembership>()
             .HasIndex(cm => new { cm.CourseId, cm.UserId })
             .IsUnique();
-
-        // Not: Başlangıç (Seed) verileri temizlendi. Artık tüm veriler uygulama üzerinden (MAUI/Swagger) eklenecek.
     }
 }

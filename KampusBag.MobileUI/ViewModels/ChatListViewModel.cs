@@ -16,7 +16,7 @@ public class ChatListViewModel : INotifyPropertyChanged
     public ObservableCollection<ChatSummaryModel> StudyRooms { get; } = new();
     public ObservableCollection<ChatSummaryModel> PrivateMessages { get; } = new();
 
-    // ── Ham listeler (arama için) ─────────────────────────────────────
+    // Ham listeler (arama için)
     private List<ChatSummaryModel> _allOfficials = new();
     private List<ChatSummaryModel> _allStudy = new();
     private List<ChatSummaryModel> _allPrivate = new();
@@ -33,13 +33,13 @@ public class ChatListViewModel : INotifyPropertyChanged
     public string ErrorMessage { get => _errorMessage; set => Set(ref _errorMessage, value); }
     public bool IsEmpty { get => _isEmpty; set => Set(ref _isEmpty, value); }
 
-    // ── Sayaçlar ──────────────────────────────────────────────────────
+    // ── Sayaç ─────────────────────────────────────────────────────────
     public int TotalUnread
         => OfficialChannels.Sum(c => c.UnreadCount)
          + StudyRooms.Sum(c => c.UnreadCount)
          + PrivateMessages.Sum(c => c.UnreadCount);
 
-    // ── Komutlar ──────────────────────────────────────────────────────
+    // ── Komutlar ─────────────────────────────────────────────────────
     public ICommand LoadCommand { get; }
     public ICommand SearchCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -51,7 +51,9 @@ public class ChatListViewModel : INotifyPropertyChanged
         RefreshCommand = new Command(async () => await LoadChatsAsync());
     }
 
-    // ── Veri Yükleme ─────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    // VERİ YÜKLEME
+    // ════════════════════════════════════════════════════════════════
     public async Task LoadChatsAsync()
     {
         IsLoading = true;
@@ -66,13 +68,15 @@ public class ChatListViewModel : INotifyPropertyChanged
                 HasError = true;
                 ErrorMessage = result.Error;
                 return;
-            } 
-            // Ham listelere kaydet
+            }
+
+            // API zaten IsOfficial bazlı kategorilenmiş olarak döndürüyor.
+            // (MessageService SQL: c."IsOfficial" = true → 'official', false → 'study')
+            // Burada doğrudan listeye atıyoruz, ek filtrelemeye gerek yok.
             _allOfficials = result.OfficialChannels;
             _allStudy = result.StudyRooms;
             _allPrivate = result.PrivateMessages;
 
-            // UI koleksiyonlarını güncelle
             FillCollection(OfficialChannels, _allOfficials);
             FillCollection(StudyRooms, _allStudy);
             FillCollection(PrivateMessages, _allPrivate);
@@ -91,7 +95,9 @@ public class ChatListViewModel : INotifyPropertyChanged
         }
     }
 
-    // ── Arama ─────────────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    // ARAMA
+    // ════════════════════════════════════════════════════════════════
     private void OnSearch(string query)
     {
         _searchQuery = query?.ToLower().Trim() ?? string.Empty;
@@ -104,20 +110,17 @@ public class ChatListViewModel : INotifyPropertyChanged
         }
         else
         {
-            FillCollection(OfficialChannels,
-                _allOfficials.Where(c => Matches(c, _searchQuery)));
-            FillCollection(StudyRooms,
-                _allStudy.Where(c => Matches(c, _searchQuery)));
-            FillCollection(PrivateMessages,
-                _allPrivate.Where(c => Matches(c, _searchQuery)));
+            FillCollection(OfficialChannels, _allOfficials.Where(c => Matches(c, _searchQuery)));
+            FillCollection(StudyRooms, _allStudy.Where(c => Matches(c, _searchQuery)));
+            FillCollection(PrivateMessages, _allPrivate.Where(c => Matches(c, _searchQuery)));
         }
 
         UpdateIsEmpty();
     }
 
     private static bool Matches(ChatSummaryModel c, string q)
-        => c.DisplayName.ToLower().Contains(q)
-        || c.LastMessage.ToLower().Contains(q);
+        => c.DisplayName.ToLower().Contains(q) ||
+           c.LastMessage.ToLower().Contains(q);
 
     // ── Yardımcılar ───────────────────────────────────────────────────
     private static void FillCollection(

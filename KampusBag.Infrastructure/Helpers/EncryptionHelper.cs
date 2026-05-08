@@ -5,34 +5,29 @@ namespace KampusBag.Infrastructure.Helpers;
 
 public static class EncryptionHelper
 {
-    // Key sabit kalabilir (32 karakter)
-    private static readonly string Key = "nGaklMaEenLAmNLyaelm193414785051"; 
+    // !! UYARI: Bu anahtar KampusBag.MobileUI/Services/EncryptionService.cs
+    // içindeki Key sabiti ile BİREBİR AYNI olmalıdır.
+    // Değiştirirseniz her iki dosyayı da aynı anda güncelleyin.
+    private const string Key = "KampusBag@2025!SecureAES256Key#1"; // 32 karakter = AES-256
 
     public static string Encrypt(string plainText)
     {
         using Aes aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(Key);
-
-        // ARTIK HER SEFERİNDE RASTGELE IV ÜRETİLİYOR
         aes.GenerateIV();
         byte[] iv = aes.IV;
 
         ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, iv);
 
         using MemoryStream ms = new();
-
-        // 🚩 IV'yi şifreli metnin en başına ekliyoruz ki çözerken okuyabilelim
-        ms.Write(iv, 0, iv.Length);
+        ms.Write(iv, 0, iv.Length); // İlk 16 byte = IV
 
         using (CryptoStream cs = new(ms, encryptor, CryptoStreamMode.Write))
+        using (StreamWriter sw = new(cs))
         {
-            using (StreamWriter sw = new(cs))
-            {
-                sw.Write(plainText);
-            }
+            sw.Write(plainText);
         }
 
-        // Sonuç: [16 byte IV] + [Şifreli Veri]
         return Convert.ToBase64String(ms.ToArray());
     }
 
@@ -43,7 +38,6 @@ public static class EncryptionHelper
         using Aes aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(Key);
 
-        // Şifreli metnin başındaki ilk 16 byte'ı IV olarak alıyoruz
         byte[] iv = new byte[16];
         byte[] actualCipher = new byte[fullCipher.Length - 16];
 
