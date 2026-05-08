@@ -33,6 +33,7 @@ public partial class AppShell : Shell
 
         // Chat akışı
         Routing.RegisterRoute(nameof(ChatDetailPage), typeof(ChatDetailPage));
+        Routing.RegisterRoute(nameof(CourseDetailPage), typeof(CourseDetailPage)); // YENİ
         Routing.RegisterRoute(nameof(JoinCoursePage), typeof(JoinCoursePage));
         Routing.RegisterRoute(nameof(CreateCoursePage), typeof(CreateCoursePage));
         Routing.RegisterRoute(nameof(SearchUserPage), typeof(SearchUserPage));
@@ -46,17 +47,14 @@ public partial class AppShell : Shell
         var fullName = ApiService.Session.FullName;
         var role = ApiService.Session.Role;
 
-        // Ad Soyad
         FlyoutFullNameLabel.Text = string.IsNullOrEmpty(fullName)
             ? "Kullanıcı"
             : fullName;
 
-        // Avatar baş harf
         FlyoutAvatarLabel.Text = string.IsNullOrEmpty(fullName)
             ? "?"
             : fullName.Trim()[0].ToString().ToUpper();
 
-        // Rol etiketi
         FlyoutRoleLabel.Text = role switch
         {
             1 => "👨‍🎓  Öğrenci",
@@ -65,7 +63,6 @@ public partial class AppShell : Shell
             _ => "Kullanıcı"
         };
     }
-
 
     // ════════════════════════════════════════
     // FLYOUT FOOTER — Güvenli Çıkış
@@ -80,10 +77,8 @@ public partial class AppShell : Shell
 
         if (!confirmed) return;
 
-        // Session temizle
         ApiService.Session.Clear();
 
-        // Navigasyon stack'ini sıfırla ve başlangıca dön
         Application.Current.MainPage =
             new NavigationPage(new Views.MainPage());
     }

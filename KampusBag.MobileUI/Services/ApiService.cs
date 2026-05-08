@@ -645,30 +645,3 @@ public class ChatListResult
     public static ChatListResult Fail(string error)
         => new() { Success = false, Error = error };
 }
-
-/// <summary>Temsilci atama ekranı için ders üye modeli.</summary>
-public class CourseMemberModel
-{
-    public Guid UserId { get; set; }
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public int Role { get; set; }
-    public bool IsRepresentative { get; set; }
-
-    public string RoleLabel => Role switch
-    {
-        1 => "Öğrenci",
-        2 => "Akademisyen",
-        3 => "Temsilci",
-        _ => "Kullanıcı"
-    };
-
-    public string AvatarInitial
-        => string.IsNullOrEmpty(FullName) ? "?" : FullName[0].ToString().ToUpper();
-
-    public string RepresentativeLabel
-        => IsRepresentative ? "Temsilciyi Geri Al" : "Temsilci Yap";
-
-    public string RepresentativeColor
-        => IsRepresentative ? "#DC2626" : "#059669";
-}
