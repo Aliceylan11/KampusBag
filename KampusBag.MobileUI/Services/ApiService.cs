@@ -1,8 +1,9 @@
-﻿using System.Net;
+﻿using KampusBag.Core.DTOs;
+using KampusBag.MobileUI.Models;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using KampusBag.Core.DTOs;
-using KampusBag.MobileUI.Models;
+using System.Text.Json.Serialization;
 
 namespace KampusBag.MobileUI.Services;
 
@@ -569,8 +570,12 @@ public class ApiService
     private record SendMessageResponse(string? Message, MessageModel? Data);
     private record RightsResponse(string? Message, int Remaining, int MaxRights);
     private record CourseListResponse(List<CourseApiModel>? Courses);
-    private record CreateCourseResponse(string? Message, Guid? CourseId);
-    private record MembersResponse(List<MemberApiModel>? Members);
+    private record CreateCourseResponse(string? Message, Guid? CourseId); 
+    private class MembersResponse
+    {
+        [JsonPropertyName("members")]  
+        public List<MemberApiModel> Members { get; set; } = new();
+    }
 
     private class ChatSummaryApiModel
     {
@@ -612,10 +617,19 @@ public class ApiService
 
     private class MemberApiModel
     {
+        [JsonPropertyName("userId")]
         public Guid UserId { get; set; }
+
+        [JsonPropertyName("fullName")]
         public string FullName { get; set; } = string.Empty;
+
+        [JsonPropertyName("email")]
         public string Email { get; set; } = string.Empty;
+
+        [JsonPropertyName("role")]
         public int Role { get; set; }
+
+        [JsonPropertyName("isRepresentative")]
         public bool IsRepresentative { get; set; }
     }
 

@@ -16,11 +16,15 @@ public partial class CourseDetailPage : ContentPage
         _vm = new CourseDetailViewModel(this, course);
         BindingContext = _vm;
     }
-
+    // ── Üyeleri Çek ───────────────────────────────────────────────────
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await _vm.LoadMembersAsync();
+        if (BindingContext is CourseDetailViewModel vm)
+        {
+            await vm.LoadMembersAsync();
+        }
     }
 
     // ── Geri ─────────────────────────────────────────────────────────
@@ -44,4 +48,6 @@ public partial class CourseDetailPage : ContentPage
             isReadOnly: isReadOnly
         ));
     }
+  
+     
 }
