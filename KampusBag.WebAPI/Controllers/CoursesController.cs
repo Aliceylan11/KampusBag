@@ -97,6 +97,7 @@ public class CoursesController : ControllerBase
         }
     }
 
+
     // ════════════════════════════════════════════════════════════════════
     // POST api/courses/join
     // Derse katıl (kod ile)

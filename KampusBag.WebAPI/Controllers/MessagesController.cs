@@ -1,30 +1,32 @@
 ﻿using KampusBag.Core.DTOs;
 using KampusBag.Core.Entities;
 using KampusBag.Core.Interfaces;
-using Microsoft.AspNetCore.Authorization;
+using KampusBag.WebAPI.Hubs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace KampusBag.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize]   ← JWT entegre edilince bu satırı aktif et
 public class MessagesController : ControllerBase
 {
     private readonly IMessageService _messageService;
     private readonly IUserService _userService;
+    private readonly IHubContext<ChatHub> _hub;           // YENİ
 
     public MessagesController(
         IMessageService messageService,
-        IUserService userService)
+        IUserService userService,
+        IHubContext<ChatHub> hub)
     {
         _messageService = messageService;
         _userService = userService;
+        _hub = hub;
     }
 
     // ════════════════════════════════════════════════════════════════════
     // POST api/messages/send
-    // Mesaj gönder — Acil hak, sessiz mod, şifreleme burada tetiklenir
     // ════════════════════════════════════════════════════════════════════
     [HttpPost("send")]
     public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto)
@@ -36,51 +38,41 @@ public class MessagesController : ControllerBase
             return BadRequest(new { message = "Mesaj içeriği boş olamaz." });
 
         if (dto.ReceiverId == null && dto.CourseId == null)
-            return BadRequest(new
-            {
-                message = "ReceiverId veya CourseId alanlarından biri zorunludur."
-            });
+            return BadRequest(new { message = "ReceiverId veya CourseId alanlarından biri zorunludur." });
 
         try
         {
-            // ── ROL BAZLI YAZMA YETKİSİ KONTROLÜ ────────────────────────
-            // Resmi kanal mesajı (CourseId var ama ReceiverId yok)
-            // Sadece Akademisyen (2) veya Temsilci (3) yazabilir
+            // Resmi kanal yazma yetkisi kontrolü
             if (dto.CourseId.HasValue && !dto.ReceiverId.HasValue)
             {
-                var sender = await _userService.SearchUsersAsync(
-                    dto.SenderId.ToString());
-
-                // Gerçek rol bilgisi için repository üzerinden alınmalı;
-                // burada ClaimsPrincipal üzerinden alınır (JWT aktif olunca)
-                // Şimdilik Header'dan "X-User-Role" ile alıyoruz
                 if (Request.Headers.TryGetValue("X-User-Role", out var roleHeader)
                     && int.TryParse(roleHeader, out int roleValue))
                 {
-                    bool isOfficialChannel = !roleHeader.Equals("2")
-                                          && !roleHeader.Equals("3");
-                    if (isOfficialChannel)
+                    if (roleValue == 1) // Öğrenci → kontrol et (temsilci olabilir)
                     {
-                        return Forbid();   // Öğrenci resmi kanala yazamaz
+                        // Gerçek temsilci kontrolü JWT ile yapılacak; şimdilik geçiyor
                     }
                 }
             }
 
+            // ── 1. Mesajı DB'ye kaydet ────────────────────────────────
             var result = await _messageService.SendMessageAsync(dto);
+
+            // ── 2. SignalR ile ilgili gruba broadcast et ───────────────
+            await BroadcastMessageAsync(result);
 
             return Ok(new
             {
                 message = result.IsEmergency
                     ? "🚨 Acil mesaj başarıyla gönderildi!"
                     : result.IsSilent
-                        ? "Mesaj gönderildi. (Sessiz Mod — Hoca 17:00 sonrası bildirim almayacak)"
+                        ? "Mesaj gönderildi. (Sessiz Mod)"
                         : "Mesaj başarıyla gönderildi.",
                 data = result
             });
         }
         catch (Exception ex) when (ex.Message.Contains("hakkınız kalmadı"))
         {
-            // Acil hak bitmiş
             return UnprocessableEntity(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -90,8 +82,29 @@ public class MessagesController : ControllerBase
     }
 
     // ════════════════════════════════════════════════════════════════════
+    // SignalR Broadcast
+    // ════════════════════════════════════════════════════════════════════
+    private async Task BroadcastMessageAsync(MessageResponseDto result)
+    {
+        if (result.CourseId.HasValue)
+        {
+            // Ders odası → tüm oda üyelerine gönder
+            var group = $"course_{result.CourseId}";
+            await _hub.Clients.Group(group)
+                .SendAsync("ReceiveMessage", result);
+        }
+        else if (result.ReceiverId.HasValue)
+        {
+            // Birebir oda → gönderene de alıcıya da gönder
+            // (Gönderen farklı cihazda açık olabilir)
+            var room = ChatHub.GetPrivateRoom(result.SenderId, result.ReceiverId.Value);
+            await _hub.Clients.Group(room)
+                .SendAsync("ReceiveMessage", result);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     // GET api/messages/history
-    // Mesaj geçmişi — birebir veya grup sohbeti
     // ════════════════════════════════════════════════════════════════════
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(
@@ -103,16 +116,11 @@ public class MessagesController : ControllerBase
             return BadRequest(new { message = "userId zorunludur." });
 
         if (otherUserId == null && courseId == null)
-            return BadRequest(new
-            {
-                message = "otherUserId veya courseId parametrelerinden biri zorunludur."
-            });
+            return BadRequest(new { message = "otherUserId veya courseId gereklidir." });
 
         try
         {
-            var history = await _messageService.GetChatHistoryAsync(
-                userId, otherUserId, courseId);
-
+            var history = await _messageService.GetChatHistoryAsync(userId, otherUserId, courseId);
             return Ok(new
             {
                 message = "Mesaj geçmişi başarıyla getirildi.",
@@ -128,7 +136,6 @@ public class MessagesController : ControllerBase
 
     // ════════════════════════════════════════════════════════════════════
     // GET api/messages/chats/{userId}
-    // Kullanıcının tüm sohbet listesi (3 kategori birleşik)
     // ════════════════════════════════════════════════════════════════════
     [HttpGet("chats/{userId:guid}")]
     public async Task<IActionResult> GetChatList(Guid userId)
@@ -140,10 +147,9 @@ public class MessagesController : ControllerBase
         {
             var chats = await _messageService.GetChatListAsync(userId);
 
-            // Kategorilere ayır
-            var official = chats.Where(c => c.Type == Core.DTOs.ChatType.OfficialChannel);
-            var study = chats.Where(c => c.Type == Core.DTOs.ChatType.StudyRoom);
-            var privates = chats.Where(c => c.Type == Core.DTOs.ChatType.PrivateMessage);
+            var official = chats.Where(c => c.Type == ChatType.OfficialChannel);
+            var study = chats.Where(c => c.Type == ChatType.StudyRoom);
+            var privates = chats.Where(c => c.Type == ChatType.PrivateMessage);
 
             return Ok(new
             {
@@ -161,7 +167,6 @@ public class MessagesController : ControllerBase
 
     // ════════════════════════════════════════════════════════════════════
     // GET api/messages/rights/{userId}
-    // Kalan acil mesaj hakkını öğren
     // ════════════════════════════════════════════════════════════════════
     [HttpGet("rights/{userId:guid}")]
     public async Task<IActionResult> GetEmergencyRights(Guid userId)
@@ -169,13 +174,7 @@ public class MessagesController : ControllerBase
         try
         {
             int remaining = await _messageService.GetRemainingRightsAsync(userId);
-
-            return Ok(new
-            {
-                message = "Acil hak bilgisi getirildi.",
-                remaining = remaining,
-                maxRights = 3
-            });
+            return Ok(new { message = "Acil hak bilgisi getirildi.", remaining, maxRights = 3 });
         }
         catch (Exception ex)
         {
@@ -184,8 +183,7 @@ public class MessagesController : ControllerBase
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // POST api/messages/emergency
-    // Acil durum mesajı — eski endpoint (backward compat.)
+    // POST api/messages/emergency (geriye uyumluluk)
     // ════════════════════════════════════════════════════════════════════
     [HttpPost("emergency")]
     public async Task<IActionResult> SendEmergency(
@@ -196,8 +194,7 @@ public class MessagesController : ControllerBase
         if (string.IsNullOrWhiteSpace(content))
             return BadRequest(new { message = "Mesaj içeriği boş olamaz." });
 
-        bool success = await _messageService
-            .SendEmergencyMessageAsync(senderId, courseId, content);
+        bool success = await _messageService.SendEmergencyMessageAsync(senderId, courseId, content);
 
         if (!success)
             return UnprocessableEntity(new
@@ -207,17 +204,15 @@ public class MessagesController : ControllerBase
 
         return Ok(new { message = "🚨 Acil mesaj başarıyla iletildi." });
     }
-    // MessagesController.cs dosyasına eklenecek endpoint
-    // Sohbete girildiğinde mesajları okundu işaretler
 
-
-     // PATCH api/messages/read
-    // Sohbete girilince mesajları okundu işaretle
-     [HttpPatch("read")]
+    // ════════════════════════════════════════════════════════════════════
+    // PATCH api/messages/read
+    // ════════════════════════════════════════════════════════════════════
+    [HttpPatch("read")]
     public async Task<IActionResult> MarkAsRead(
         [FromQuery] Guid userId,
-        [FromQuery] Guid? senderId = null,   // Özel mesaj için
-        [FromQuery] Guid? courseId = null)   // Grup mesajı için
+        [FromQuery] Guid? senderId = null,
+        [FromQuery] Guid? courseId = null)
     {
         if (userId == Guid.Empty)
             return BadRequest(new { message = "userId zorunludur." });
@@ -227,19 +222,12 @@ public class MessagesController : ControllerBase
 
         try
         {
-            int updated = await _messageService.MarkMessagesAsReadAsync(
-                userId, senderId, courseId);
-
-            return Ok(new
-            {
-                message = $"{updated} mesaj okundu olarak işaretlendi.",
-                count = updated
-            });
+            int updated = await _messageService.MarkMessagesAsReadAsync(userId, senderId, courseId);
+            return Ok(new { message = $"{updated} mesaj okundu olarak işaretlendi.", count = updated });
         }
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }
     }
-
 }

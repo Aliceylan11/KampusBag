@@ -28,13 +28,25 @@ public partial class ChatDetailPage : ContentPage
         ChatTitleLabel.Text = chatName;
     }
 
-    // Eski çağrılarla (bool) geriye uyumluluk
+    // Geriye uyumluluk (eski çağrılar için)
     public ChatDetailPage(bool isPrivateWithTeacher)
         : this("Sohbet", null, null, isPrivateWithTeacher) { }
 
+    // ════════════════════════════════════════════════════════════════
+    // SAYFA GÖRÜNDÜĞÜNDESignalR başlat + geçmiş yükle
+    // ════════════════════════════════════════════════════════════════
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _vm.LoadHistoryAsync();
+        await _vm.InitializeAsync();   // SignalR + geçmiş
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // SAYFA KAPANIRKEN → odadan ayrıl
+    // ════════════════════════════════════════════════════════════════
+    protected override async void OnDisappearing()
+    {
+        base.OnDisappearing();
+        await _vm.CleanupAsync();      // oda ayrılma + bağlantı kapat
     }
 }

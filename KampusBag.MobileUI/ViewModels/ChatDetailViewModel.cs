@@ -10,6 +10,7 @@ namespace KampusBag.MobileUI.ViewModels;
 public class ChatDetailViewModel : INotifyPropertyChanged
 {
     private readonly ApiService _apiService = new();
+    private readonly SignalRService _signalR = new();   // YENİ
 
     // ── Parametreler ─────────────────────────────────────────────────
     public string ChatName { get; set; } = "Sohbet";
@@ -18,10 +19,10 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     public bool IsPrivateWithTeacher { get; set; }
     public bool IsReadOnly { get; set; }
 
-    // ── Koleksiyon ───────────────────────────────────────────────────
+    // ── Mesaj koleksiyonu ─────────────────────────────────────────────
     public ObservableCollection<MessageModel> Messages { get; } = new();
 
-    // ── Giriş Metni ──────────────────────────────────────────────────
+    // ── Metin girişi ──────────────────────────────────────────────────
     private string _messageText = string.Empty;
     public string MessageText
     {
@@ -29,7 +30,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         set { Set(ref _messageText, value); OnPropertyChanged(nameof(CanSend)); }
     }
 
-    // ── Acil Hak ─────────────────────────────────────────────────────
+    // ── Acil hak ─────────────────────────────────────────────────────
     private int _remainingRights = 3;
     public int RemainingRights
     {
@@ -53,6 +54,16 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     public bool IsSending { get => _isSending; set { Set(ref _isSending, value); OnPropertyChanged(nameof(CanSend)); } }
     public bool CanSend => !string.IsNullOrWhiteSpace(MessageText) && !IsSending && !IsReadOnly;
 
+    // ── SignalR bağlantı durumu ───────────────────────────────────────
+    private bool _isSignalRConnected;
+    public bool IsSignalRConnected
+    {
+        get => _isSignalRConnected;
+        set { Set(ref _isSignalRConnected, value); OnPropertyChanged(nameof(ConnectionStatusText)); }
+    }
+    public string ConnectionStatusText
+        => IsSignalRConnected ? string.Empty : "⚠️ Canlı bağlantı yok";
+
     // ── Komutlar ─────────────────────────────────────────────────────
     public ICommand SendCommand { get; }
     public ICommand SendEmergencyCommand { get; }
@@ -67,25 +78,89 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     }
 
     // ════════════════════════════════════════════════════════════════
-    // GEÇMİŞ YÜKLEME
+    // BAŞLAT: SignalR + Geçmiş
+    // ════════════════════════════════════════════════════════════════
+    public async Task InitializeAsync()
+    {
+        // 1. SignalR'ı başlat ve odaya katıl
+        await StartSignalRAsync();
+
+        // 2. Acil hak bilgisi
+        var (ok, remaining) = await _apiService.GetEmergencyRightsAsync(ApiService.Session.UserId);
+        if (ok) RemainingRights = remaining;
+
+        // 3. Geçmiş mesajları yükle
+        await LoadHistoryAsync();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // SignalR başlatma
+    // ════════════════════════════════════════════════════════════════
+    private async Task StartSignalRAsync()
+    {
+        // Mesaj gelince çalışacak handler'ı kaydet
+        _signalR.MessageReceived -= OnSignalRMessageReceived; // çift kayıt önle
+        _signalR.MessageReceived += OnSignalRMessageReceived;
+
+        await _signalR.StartAsync(ApiService.Session.UserId);
+        IsSignalRConnected = _signalR.IsConnected;
+
+        // Uygun odaya katıl
+        if (CourseId.HasValue)
+            await _signalR.JoinCourseRoomAsync(CourseId.Value);
+        else if (OtherUserId.HasValue)
+            await _signalR.JoinPrivateRoomAsync(ApiService.Session.UserId, OtherUserId.Value);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // SignalR mesaj handler'ı
+    // ════════════════════════════════════════════════════════════════
+    private void OnSignalRMessageReceived(MessageModel message)
+    {
+        // UI thread'e geç (ObservableCollection cross-thread güncellemesi kırılır)
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Kendi gönderdiğimiz mesajı tekrar ekleme (ID ile kontrol)
+            if (Messages.Any(m => m.Id == message.Id)) return;
+
+            // Bu sohbete ait değilse yoksay
+            if (CourseId.HasValue && message.CourseId != CourseId) return;
+            if (OtherUserId.HasValue &&
+                message.CourseId.HasValue) return; // grup mesajı, özel sohbete ekleme
+
+            Messages.Add(message);
+        });
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEMIZLE: Sayfa kapanınca odadan ayrıl
+    // ════════════════════════════════════════════════════════════════
+    public async Task CleanupAsync()
+    {
+        _signalR.MessageReceived -= OnSignalRMessageReceived;
+
+        if (CourseId.HasValue)
+            await _signalR.LeaveCourseRoomAsync(CourseId.Value);
+        else if (OtherUserId.HasValue)
+            await _signalR.LeavePrivateRoomAsync(ApiService.Session.UserId, OtherUserId.Value);
+
+        // Bağlantıyı kapat (uygulama geneli tek bağlantı istersen StopAsync'i kaldır)
+        await _signalR.StopAsync();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // GEÇMİŞ YÜKLEME (HTTP)
     // ════════════════════════════════════════════════════════════════
     public async Task LoadHistoryAsync()
     {
         IsLoading = true;
 
-        // Acil hak bilgisi
-        var (ok, remaining) = await _apiService.GetEmergencyRightsAsync(ApiService.Session.UserId);
-        if (ok) RemainingRights = remaining;
-
-        // Mesaj geçmişi
         var (success, messages, error) = await _apiService
             .GetChatHistoryAsync(ApiService.Session.UserId, OtherUserId, CourseId);
 
         if (success)
         {
-            // DÜZELTME: Sadece tarih sırasına göre (eskiden yeniye doğal akış)
             var sorted = messages.OrderBy(m => m.SentAt);
-
             Messages.Clear();
             foreach (var m in sorted) Messages.Add(m);
 
@@ -116,6 +191,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
 
         if (result.Success && result.Message != null)
         {
+            // Mesajı hemen lokalde ekle (SignalR echo'su gelince ID kontrolü atar)
             var newMsg = new MessageModel
             {
                 Id = result.Message.Id,
@@ -131,10 +207,12 @@ public class ChatDetailViewModel : INotifyPropertyChanged
             };
 
             if (newMsg.IsSilent)
-                await _page.DisplayAlert("🌙 Sessiz Mod",
-                    "Mesaj iletildi. Alıcı 17:00 sonrası bildirim almayacak.", "Tamam");
+                await _page.DisplayAlert(
+                    "🌙 Sessiz Mod",
+                    "Mesaj iletildi. Alıcı 17:00 sonrası bildirim almayacak.",
+                    "Tamam");
 
-            Messages.Add(newMsg);   // Sona ekle — sıralama zaten tarihe göre
+            Messages.Add(newMsg);
 
             if (isEmergency)
                 RemainingRights = Math.Max(0, RemainingRights - 1);
@@ -142,7 +220,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         else if (result.IsRightsDepleted)
         {
             await _page.DisplayAlert("🚨 Hak Doldu", result.StatusMsg, "Tamam");
-            MessageText = text;   // Kullanıcının yazdığı metni geri koy
+            MessageText = text;
         }
         else
         {
@@ -159,8 +237,8 @@ public class ChatDetailViewModel : INotifyPropertyChanged
 
         bool confirm = await _page.DisplayAlert(
             "🚨 Acil Mesaj Gönder",
-            $"Kalan hakkınız: {RemainingRights}/3\n\n" +
-            "Bu işlem 1 acil hakkınızı tüketecek. Devam edilsin mi?",
+            $"Kalan hakkınız: {RemainingRights}/3\n\n"
+            + "Bu işlem 1 acil hakkınızı tüketecek. Devam edilsin mi?",
             "Evet, Gönder", "Vazgeç");
 
         if (confirm) await SendAsync(true);
@@ -168,11 +246,13 @@ public class ChatDetailViewModel : INotifyPropertyChanged
 
     // ── INotifyPropertyChanged ────────────────────────────────────────
     public event PropertyChangedEventHandler? PropertyChanged;
+
     private void Set<T>(ref T f, T v, [CallerMemberName] string? n = null)
     {
         if (EqualityComparer<T>.Default.Equals(f, v)) return;
         f = v; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
+
     protected void OnPropertyChanged([CallerMemberName] string? n = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }

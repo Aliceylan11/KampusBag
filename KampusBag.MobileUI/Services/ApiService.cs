@@ -11,12 +11,13 @@ public class ApiService
     private readonly HttpClient _httpClient;
     private readonly EncryptionService _encryption = new();
 
+    // ── Hub URL ───────────────────────────────────────────────────────
 #if ANDROID
-    private const string BaseUrl = "http://10.0.2.2:5178/api/";
+    public const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/api/";
 #else
-    private const string BaseUrl = "http://localhost:5178/api/";
+    // Laptop (Windows) için de ngrok kullanalım ki port karmaşası bitsin
+    public const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/api/";
 #endif
-
     // ── Oturum ────────────────────────────────────────────────────────
     public static class Session
     {
@@ -40,9 +41,13 @@ public class ApiService
     {
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(BaseUrl),
+            // Ngrok statik URL'nizi buraya tam adres olarak yazıyoruz
+            BaseAddress = new Uri("https://resistant-sacred-exes.ngrok-free.dev/api/"),
             Timeout = TimeSpan.FromSeconds(15)
         };
+
+        // Ngrok'un ücretsiz planındaki "browser warning" sayfasını atlamak için:
+        _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "69420");
     }
 
     // ══════════════════════════════════════════════════════════════════
