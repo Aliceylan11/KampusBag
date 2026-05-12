@@ -13,11 +13,11 @@ public class SignalRService
     private readonly EncryptionService _encryption = new();
 
 #if ANDROID
-    private const string HubUrl = "http://10.0.2.2:5178/hubs/chat";
+    // Fiziksel cihazlar ve ngrok için tam adres:
+    private const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/hubs/chat";
 #else
-    private const string HubUrl = "http://localhost:5178/hubs/chat";
+    private const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/hubs/chat";
 #endif
-
     public bool IsConnected
         => _connection?.State == HubConnectionState.Connected;
 
@@ -33,7 +33,7 @@ public class SignalRService
             return;
 
         _connection = new HubConnectionBuilder()
-            .WithUrl($"{HubUrl}?userId={userId}")
+            .WithUrl($"{BaseUrl}?userId={userId}")
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;

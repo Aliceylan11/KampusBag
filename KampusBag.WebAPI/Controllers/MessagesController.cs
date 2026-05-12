@@ -1,27 +1,25 @@
 ﻿using KampusBag.Core.DTOs;
 using KampusBag.Core.Interfaces;
-using KampusBag.Core.Options;
-using KampusBag.Infrastructure.Persistence;
-using KampusBag.Infrastructure.Services;
 using KampusBag.WebAPI.Hubs;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace KampusBag.WebAPI.Controllers;
 
-public class Program
+[ApiController]
+[Route("api/[controller]")]
+public class MessagesController : ControllerBase
 {
     private readonly IMessageService _messageService;
-    private readonly IUserService _userService;
     private readonly IHubContext<ChatHub> _hub;
 
     public MessagesController(
         IMessageService messageService,
-        IUserService userService,
         IHubContext<ChatHub> hub)
     {
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        _messageService = messageService;
+        _hub = hub;
+    }
 
     // ════════════════════════════════════════════════════════════════════
     // POST api/messages/send
@@ -31,8 +29,10 @@ public class Program
     {
         if (dto.SenderId == Guid.Empty)
             return BadRequest(new { message = "SenderId zorunludur." });
+
         if (string.IsNullOrWhiteSpace(dto.Content))
             return BadRequest(new { message = "Mesaj içeriği boş olamaz." });
+
         if (dto.ReceiverId == null && dto.CourseId == null)
             return BadRequest(new { message = "ReceiverId veya CourseId gereklidir." });
 
@@ -40,19 +40,19 @@ public class Program
         {
             var result = await _messageService.SendMessageAsync(dto);
 
-            // SignalR broadcast
             await BroadcastMessageAsync(result);
 
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+            return Ok(new
             {
                 message = result.IsEmergency
                     ? "🚨 Acil mesaj gönderildi!"
-                    : result.IsSilent ? "Mesaj gönderildi. (Sessiz Mod)" : "Mesaj gönderildi.",
+                    : result.IsSilent
+                        ? "Mesaj gönderildi. (Sessiz Mod)"
+                        : "Mesaj gönderildi.",
                 data = result
             });
         }
-        catch (Exception ex) when (ex.Message.Contains("hakkınız kalmadı"))
+        catch (Exception ex) when (ex.Message.Contains("hakkınız kalmadı!"))
         {
             return UnprocessableEntity(new { message = ex.Message });
         }
@@ -62,23 +62,8 @@ public class Program
         }
     }
 
-    private async Task BroadcastMessageAsync(MessageResponseDto result)
-    {
-        if (result.CourseId.HasValue)
-            await _hub.Clients
-                .Group($"course_{result.CourseId}")
-                .SendAsync("ReceiveMessage", result);
-        else if (result.ReceiverId.HasValue)
-            await _hub.Clients
-                .Group(ChatHub.GetPrivateRoom(result.SenderId, result.ReceiverId.Value))
-                .SendAsync("ReceiveMessage", result);
-    }
-
     // ════════════════════════════════════════════════════════════════════
-    // GET api/messages/history
-    // #6 DÜZELTME: page + pageSize parametreleri eklendi.
-    // Varsayılan: page=1, pageSize=50
-    // Mobil uygulama yukarı kaydırdıkça page+1 ile eski mesajları çeker.
+    // GET api/messages/history   (#6 pagination eklendi)
     // ════════════════════════════════════════════════════════════════════
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(
@@ -90,27 +75,34 @@ public class Program
     {
         if (userId == Guid.Empty)
             return BadRequest(new { message = "userId zorunludur." });
+
         if (otherUserId == null && courseId == null)
             return BadRequest(new { message = "otherUserId veya courseId gereklidir." });
+
         if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 50;
+        if (pageSize is < 1 or > 100) pageSize = 50;
 
         try
         {
             var history = await _messageService.GetChatHistoryAsync(
                 userId, otherUserId, courseId, page, pageSize);
 
+            var list = history.ToList();
+
             return Ok(new
             {
                 message = "Mesaj geçmişi getirildi.",
                 page,
                 pageSize,
-                count = history.Count(),
-                hasMore = history.Count() == pageSize,
-                data = history
+                count = list.Count,
+                hasMore = list.Count == pageSize,
+                data = list
             });
         }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -121,9 +113,11 @@ public class Program
     {
         if (userId == Guid.Empty)
             return BadRequest(new { message = "Geçerli userId gereklidir." });
+
         try
         {
             var chats = await _messageService.GetChatListAsync(userId);
+
             return Ok(new
             {
                 message = "Sohbet listesi getirildi.",
@@ -132,9 +126,15 @@ public class Program
                 privateMessages = chats.Where(c => c.Type == ChatType.PrivateMessage)
             });
         }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    // GET api/messages/rights/{userId}
+    // ════════════════════════════════════════════════════════════════════
     [HttpGet("rights/{userId:guid}")]
     public async Task<IActionResult> GetEmergencyRights(Guid userId)
     {
@@ -143,9 +143,15 @@ public class Program
             int remaining = await _messageService.GetRemainingRightsAsync(userId);
             return Ok(new { remaining, maxRights = 3 });
         }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    // POST api/messages/emergency  (geriye uyumluluk)
+    // ════════════════════════════════════════════════════════════════════
     [HttpPost("emergency")]
     public async Task<IActionResult> SendEmergency(
         [FromQuery] Guid senderId,
@@ -156,25 +162,52 @@ public class Program
             return BadRequest(new { message = "İçerik boş olamaz." });
 
         bool success = await _messageService.SendEmergencyMessageAsync(senderId, courseId, content);
+
         return success
             ? Ok(new { message = "🚨 Acil mesaj iletildi." })
             : UnprocessableEntity(new { message = "Acil mesaj hakkınız kalmadı." });
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    // PATCH api/messages/read
+    // ════════════════════════════════════════════════════════════════════
     [HttpPatch("read")]
     public async Task<IActionResult> MarkAsRead(
         [FromQuery] Guid userId,
         [FromQuery] Guid? senderId = null,
         [FromQuery] Guid? courseId = null)
     {
-        if (userId == Guid.Empty) return BadRequest(new { message = "userId zorunludur." });
+        if (userId == Guid.Empty)
+            return BadRequest(new { message = "userId zorunludur." });
+
         if (senderId == null && courseId == null)
             return BadRequest(new { message = "senderId veya courseId gereklidir." });
+
         try
         {
             int updated = await _messageService.MarkMessagesAsReadAsync(userId, senderId, courseId);
             return Ok(new { message = $"{updated} mesaj okundu.", count = updated });
         }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // ── SignalR Broadcast ─────────────────────────────────────────────
+    private async Task BroadcastMessageAsync(MessageResponseDto result)
+    {
+        if (result.CourseId.HasValue)
+        {
+            await _hub.Clients
+                .Group($"course_{result.CourseId}")
+                .SendAsync("ReceiveMessage", result);
+        }
+        else if (result.ReceiverId.HasValue)
+        {
+            await _hub.Clients
+                .Group(ChatHub.GetPrivateRoom(result.SenderId, result.ReceiverId.Value))
+                .SendAsync("ReceiveMessage", result);
+        }
     }
 }

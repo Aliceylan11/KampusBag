@@ -12,11 +12,11 @@ public class ApiService
     private readonly EncryptionService _encryption = new();
 
 #if ANDROID
-    private const string BaseUrl = "http://10.0.2.2:5178/api/";
+    // Fiziksel cihazlar ve ngrok için tam adres:
+    private const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/api/";
 #else
-    private const string BaseUrl = "http://localhost:5178/api/";
+    private const string BaseUrl = "https://resistant-sacred-exes.ngrok-free.dev/api/"; 
 #endif
-
     public static class Session
     {
         public static Guid UserId { get; set; }
@@ -35,7 +35,7 @@ public class ApiService
 
     public ApiService()
     {
-        _httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
+        _httpClient = new HttpClient { BaseAddress = new Uri(HubUrl), Timeout = TimeSpan.FromSeconds(20) };
     }
 
     private void SetAuthHeader()
