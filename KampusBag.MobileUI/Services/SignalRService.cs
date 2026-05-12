@@ -5,71 +5,63 @@ namespace KampusBag.MobileUI.Services;
 
 /// <summary>
 /// SignalR Hub bağlantısını yöneten servis.
-/// Tek bağlantı tüm uygulama boyunca yaşar; sayfa geçişlerinde yeniden oluşturulmaz.
-/// Yeni bir sohbet odasına girildiğinde JoinXxx, çıkıldığında LeaveXxx çağrılır.
+/// Tek bağlantı tüm uygulama boyunca yaşar.
 /// </summary>
 public class SignalRService
 {
     private HubConnection? _connection;
     private readonly EncryptionService _encryption = new();
 
-    // ── Hub URL ───────────────────────────────────────────────────────
 #if ANDROID
-    private const string HubUrl = "https://resistant-sacred-exes.ngrok-free.dev/hubs/chat";
+    private const string HubUrl = "http://10.0.2.2:5178/hubs/chat";
 #else
-    // Laptop için de aynı ngrok adresi
-    private const string HubUrl = "https://resistant-sacred-exes.ngrok-free.dev/hubs/chat";
+    private const string HubUrl = "http://localhost:5178/hubs/chat";
 #endif
 
-    // ── Durum ─────────────────────────────────────────────────────────
     public bool IsConnected
         => _connection?.State == HubConnectionState.Connected;
 
-    /// <summary>Yeni mesaj geldiğinde tetiklenir. UI thread'e geçiş gerekir.</summary>
     public event Action<MessageModel>? MessageReceived;
+
     // ════════════════════════════════════════════════════════════════
     // BAŞLAT
     // ════════════════════════════════════════════════════════════════
     public async Task StartAsync(Guid userId)
     {
-        // Zaten bağlıysa tekrar bağlanma
         if (_connection != null &&
             _connection.State != HubConnectionState.Disconnected)
             return;
 
-        // Ngrok statik URL'nizi buraya tanımlıyoruz (HubUrl değişkenini de buna göre güncellediğinizden emin olun)
-        var finalHubUrl = "https://resistant-sacred-exes.ngrok-free.dev/hubs/chat";
-
         _connection = new HubConnectionBuilder()
-            .WithUrl($"{finalHubUrl}?userId={userId}", options =>
-            {
-                // Ngrok'un ücretsiz planındaki "browser warning" sayfasını atlamak için ŞART:
-                options.Headers.Add("ngrok-skip-browser-warning", "69420");
-            })
+            .WithUrl($"{HubUrl}?userId={userId}")
             .AddJsonProtocol(options =>
             {
-                // Sunucu PascalCase gönderir; bu ayar MAUI model sınıflarıyla eşleştirir
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
             })
             .WithAutomaticReconnect(new[]
             {
-            // İlk kopuşta hemen, sonra artan aralıklarla yeniden bağlan
-            TimeSpan.Zero,
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(5),
-            TimeSpan.FromSeconds(10),
-            TimeSpan.FromSeconds(30)
+                TimeSpan.Zero,
+                TimeSpan.FromSeconds(2),
+                TimeSpan.FromSeconds(5),
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(30)
             })
             .Build();
 
-        // ── Mesaj dinleyici ───────────────────────────────────────────
+        // ════════════════════════════════════════════════════════════
+        // #5 DÜZELTME: Mesaj handler'da AES decrypt uygula.
+        // Server ciphertext1 broadcast eder (mobile'ın gönderdiği şifreli içerik).
+        // Decrypt yapılmazsa UI'da base64 cipher text görünür.
+        // ════════════════════════════════════════════════════════════
         _connection.On<MessageModel>("ReceiveMessage", message =>
         {
-            // Yeni mesaj geldiğinde UI thread'e haber ver
+            // Decrypt: ciphertext1 → plaintext
+            // Eğer içerik zaten düz metin ise (Swagger test vb.), try-catch içinde güvenle döner
+            message.Content = _encryption.Decrypt(message.Content);
+
             MessageReceived?.Invoke(message);
         });
 
-        // ── Bağlantı olayları ─────────────────────────────────────────
         _connection.Reconnecting += error =>
         {
             Console.WriteLine($"[SignalR] Yeniden bağlanıyor… {error?.Message}");
@@ -88,11 +80,10 @@ public class SignalRService
             return Task.CompletedTask;
         };
 
-        // ── Bağlan ───────────────────────────────────────────────────
         try
         {
             await _connection.StartAsync();
-            Console.WriteLine("[SignalR] Ngrok üzerinden bağlantı kuruldu.");
+            Console.WriteLine("[SignalR] Bağlantı kuruldu.");
         }
         catch (Exception ex)
         {

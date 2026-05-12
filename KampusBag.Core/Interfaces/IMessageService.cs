@@ -6,21 +6,23 @@ namespace KampusBag.Core.Interfaces;
 public interface IMessageService
 {
     // ── Mesaj Gönderimi ──────────────────────────────────────────────────
-    // Acil hak kontrolü, sessiz mod bayrağı ve şifreleme burada yapılır
     Task<MessageResponseDto> SendMessageAsync(SendMessageDto dto);
 
-    // ── Mesaj Geçmişi ────────────────────────────────────────────────────
-    // İki kullanıcı arasındaki veya bir gruba ait tüm mesajları döner
+    // ── Mesaj Geçmişi — #6 Pagination ────────────────────────────────────
+    // page=1, pageSize=50 ile son mesajlar önce gelir.
     Task<IEnumerable<MessageResponseDto>> GetChatHistoryAsync(
-        Guid userId, Guid? otherUserId, Guid? courseId);
+        Guid userId,
+        Guid? otherUserId,
+        Guid? courseId,
+        int page = 1,
+        int pageSize = 50);
 
     // ── Sohbet Listesi ───────────────────────────────────────────────────
-    // Kullanıcının dahil olduğu tüm sohbetlerin özetini döner
     Task<IEnumerable<ChatSummaryDto>> GetChatListAsync(Guid userId);
 
-    // ── Mevcut Metodlar (değişmedi) ───────────────────────────────────────
+    // ── Mevcut Metodlar ───────────────────────────────────────────────────
     Task<bool> SendEmergencyMessageAsync(Guid senderId, Guid courseId, string content);
     Task<int> GetRemainingRightsAsync(Guid userId);
-    Task<int> MarkMessagesAsReadAsync(Guid userId, Guid? senderId, Guid? courseId); 
+    Task<int> MarkMessagesAsReadAsync(Guid userId, Guid? senderId, Guid? courseId);
     Task<int> GetCountByUserIdAsync(Guid userId);
 }
