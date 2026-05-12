@@ -1,14 +1,16 @@
 ﻿using KampusBag.Core.DTOs;
 using KampusBag.Core.Interfaces;
+using KampusBag.Core.Options;
+using KampusBag.Infrastructure.Persistence;
+using KampusBag.Infrastructure.Services;
 using KampusBag.WebAPI.Hubs;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KampusBag.WebAPI.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class MessagesController : ControllerBase
+public class Program
 {
     private readonly IMessageService _messageService;
     private readonly IUserService _userService;
@@ -19,10 +21,7 @@ public class MessagesController : ControllerBase
         IUserService userService,
         IHubContext<ChatHub> hub)
     {
-        _messageService = messageService;
-        _userService = userService;
-        _hub = hub;
-    }
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
     // ════════════════════════════════════════════════════════════════════
     // POST api/messages/send
@@ -44,7 +43,8 @@ public class MessagesController : ControllerBase
             // SignalR broadcast
             await BroadcastMessageAsync(result);
 
-            return Ok(new
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
                 message = result.IsEmergency
                     ? "🚨 Acil mesaj gönderildi!"
