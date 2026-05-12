@@ -1,13 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\KampusBag.Core\KampusBag.Core.csproj" />
-  </ItemGroup>
+	<!--
+    #4 Onion Refactoring:
+    Application katmanı sadece Core'a bağımlı olmalı.
+    Infrastructure'a referans OLMAMALI (bağımlılık akışı ihlali).
+    UserService artık burada; IGenericRepository ve IEmailService
+    interface'lerini Core üzerinden kullanıyor.
+  -->
+	<ItemGroup>
+		<ProjectReference Include="..\KampusBag.Core\KampusBag.Core.csproj" />
+	</ItemGroup>
+
+	<!--
+    WebAPI.csproj'a eklenecek NuGet paketi (#2 JWT):
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.0" />
+
+    Infrastructure.csproj'a eklenecek:
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.5.0" />
+  -->
 
 </Project>

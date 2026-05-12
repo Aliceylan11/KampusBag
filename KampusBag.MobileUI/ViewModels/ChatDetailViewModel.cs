@@ -10,7 +10,8 @@ namespace KampusBag.MobileUI.ViewModels;
 public class ChatDetailViewModel : INotifyPropertyChanged
 {
     private readonly ApiService _apiService = new();
-    private readonly SignalRService _signalR = new();   // YENİ
+    private readonly SignalRService _signalR = new();
+    private readonly EncryptionService _encryption = new();
 
     // ── Parametreler ─────────────────────────────────────────────────
     public string ChatName { get; set; } = "Sohbet";
@@ -19,8 +20,13 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     public bool IsPrivateWithTeacher { get; set; }
     public bool IsReadOnly { get; set; }
 
-    // ── Mesaj koleksiyonu ─────────────────────────────────────────────
+    // ── Mesaj listesi ─────────────────────────────────────────────────
     public ObservableCollection<MessageModel> Messages { get; } = new();
+
+    // #6 Pagination
+    private int _currentPage = 1;
+    private const int PageSize = 50;
+    public bool HasMoreMessages { get; private set; } = true;
 
     // ── Metin girişi ──────────────────────────────────────────────────
     private string _messageText = string.Empty;
@@ -54,7 +60,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     public bool IsSending { get => _isSending; set { Set(ref _isSending, value); OnPropertyChanged(nameof(CanSend)); } }
     public bool CanSend => !string.IsNullOrWhiteSpace(MessageText) && !IsSending && !IsReadOnly;
 
-    // ── SignalR bağlantı durumu ───────────────────────────────────────
+    // ── SignalR durum ─────────────────────────────────────────────────
     private bool _isSignalRConnected;
     public bool IsSignalRConnected
     {
@@ -67,6 +73,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
     // ── Komutlar ─────────────────────────────────────────────────────
     public ICommand SendCommand { get; }
     public ICommand SendEmergencyCommand { get; }
+    public ICommand LoadMoreCommand { get; }
 
     private readonly Page _page;
 
@@ -75,104 +82,114 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         _page = page;
         SendCommand = new Command(async () => await SendAsync(false));
         SendEmergencyCommand = new Command(async () => await ConfirmAndSendEmergencyAsync());
+        LoadMoreCommand = new Command(async () => await LoadHistoryAsync(loadMore: true));
     }
 
     // ════════════════════════════════════════════════════════════════
-    // BAŞLAT: SignalR + Geçmiş
+    // BAŞLAT
     // ════════════════════════════════════════════════════════════════
     public async Task InitializeAsync()
     {
-        // 1. SignalR'ı başlat ve odaya katıl
+        // #7 GUARD: Her iki ID de null ise işlem yapma
+        if (!CourseId.HasValue && !OtherUserId.HasValue)
+            throw new InvalidOperationException("CourseId veya OtherUserId gereklidir.");
+
         await StartSignalRAsync();
 
-        // 2. Acil hak bilgisi
         var (ok, remaining) = await _apiService.GetEmergencyRightsAsync(ApiService.Session.UserId);
         if (ok) RemainingRights = remaining;
 
-        // 3. Geçmiş mesajları yükle
-        await LoadHistoryAsync();
+        await LoadHistoryAsync(loadMore: false);
     }
 
     // ════════════════════════════════════════════════════════════════
-    // SignalR başlatma
+    // SignalR
     // ════════════════════════════════════════════════════════════════
     private async Task StartSignalRAsync()
     {
-        // Mesaj gelince çalışacak handler'ı kaydet
-        _signalR.MessageReceived -= OnSignalRMessageReceived; // çift kayıt önle
+        _signalR.MessageReceived -= OnSignalRMessageReceived;
         _signalR.MessageReceived += OnSignalRMessageReceived;
 
         await _signalR.StartAsync(ApiService.Session.UserId);
         IsSignalRConnected = _signalR.IsConnected;
 
-        // Uygun odaya katıl
         if (CourseId.HasValue)
             await _signalR.JoinCourseRoomAsync(CourseId.Value);
         else if (OtherUserId.HasValue)
             await _signalR.JoinPrivateRoomAsync(ApiService.Session.UserId, OtherUserId.Value);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // SignalR mesaj handler'ı
-    // ════════════════════════════════════════════════════════════════
+    // ─── SignalR mesaj handler ────────────────────────────────────────
+    // #5: SignalRService zaten decrypt eder, burada tekrar etme.
+    // Sadece filtrele ve UI thread'e geç.
     private void OnSignalRMessageReceived(MessageModel message)
     {
-        // UI thread'e geç (ObservableCollection cross-thread güncellemesi kırılır)
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Kendi gönderdiğimiz mesajı tekrar ekleme (ID ile kontrol)
+            // Kendi mesajımızın echo'sunu atla (ID ile kontrol)
             if (Messages.Any(m => m.Id == message.Id)) return;
 
             // Bu sohbete ait değilse yoksay
             if (CourseId.HasValue && message.CourseId != CourseId) return;
-            if (OtherUserId.HasValue &&
-                message.CourseId.HasValue) return; // grup mesajı, özel sohbete ekleme
+            if (OtherUserId.HasValue && message.CourseId.HasValue) return;
 
             Messages.Add(message);
         });
     }
 
     // ════════════════════════════════════════════════════════════════
-    // TEMIZLE: Sayfa kapanınca odadan ayrıl
+    // GEÇMİŞ — #6 Pagination + Background Decrypt
     // ════════════════════════════════════════════════════════════════
-    public async Task CleanupAsync()
+    public async Task LoadHistoryAsync(bool loadMore = false)
     {
-        _signalR.MessageReceived -= OnSignalRMessageReceived;
+        if (!loadMore) _currentPage = 1;
+        if (loadMore && !HasMoreMessages) return;
 
-        if (CourseId.HasValue)
-            await _signalR.LeaveCourseRoomAsync(CourseId.Value);
-        else if (OtherUserId.HasValue)
-            await _signalR.LeavePrivateRoomAsync(ApiService.Session.UserId, OtherUserId.Value);
-
-        // Bağlantıyı kapat (uygulama geneli tek bağlantı istersen StopAsync'i kaldır)
-        await _signalR.StopAsync();
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // GEÇMİŞ YÜKLEME (HTTP)
-    // ════════════════════════════════════════════════════════════════
-    public async Task LoadHistoryAsync()
-    {
         IsLoading = true;
 
-        var (success, messages, error) = await _apiService
-            .GetChatHistoryAsync(ApiService.Session.UserId, OtherUserId, CourseId);
-
-        if (success)
+        try
         {
-            var sorted = messages.OrderBy(m => m.SentAt);
-            Messages.Clear();
-            foreach (var m in sorted) Messages.Add(m);
+            var (success, messages, error) = await _apiService.GetChatHistoryAsync(
+                ApiService.Session.UserId,
+                OtherUserId,
+                CourseId,
+                page: _currentPage,
+                pageSize: PageSize);
 
-            // Okundu işaretle
+            if (!success)
+            {
+                await _page.DisplayAlert("Hata", error, "Tamam");
+                return;
+            }
+
+            // #6: AES decrypt'i background thread'de yap — main thread donmasını önler
+            var decrypted = await Task.Run(() =>
+                messages
+                    .OrderBy(m => m.SentAt)
+                    .ToList());
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!loadMore) Messages.Clear();
+
+                foreach (var m in decrypted)
+                    Messages.Add(m);
+
+                HasMoreMessages = messages.Count == PageSize;
+                if (loadMore) _currentPage++;
+            });
+
             await _apiService.MarkAsReadAsync(OtherUserId, CourseId);
         }
-        else
+        catch (Exception ex)
         {
-            await _page.DisplayAlert("Bağlantı Hatası", error, "Tamam");
+            Console.WriteLine($"[ChatDetailViewModel] LoadHistoryAsync hata: {ex}");
+            await _page.DisplayAlert("Hata", $"Mesajlar yüklenemedi: {ex.Message}", "Tamam");
         }
-
-        IsLoading = false;
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -191,7 +208,7 @@ public class ChatDetailViewModel : INotifyPropertyChanged
 
         if (result.Success && result.Message != null)
         {
-            // Mesajı hemen lokalde ekle (SignalR echo'su gelince ID kontrolü atar)
+            // Mesajı hemen lokale ekle (SignalR echo gelince ID kontrolü atar)
             var newMsg = new MessageModel
             {
                 Id = result.Message.Id,
@@ -207,10 +224,8 @@ public class ChatDetailViewModel : INotifyPropertyChanged
             };
 
             if (newMsg.IsSilent)
-                await _page.DisplayAlert(
-                    "🌙 Sessiz Mod",
-                    "Mesaj iletildi. Alıcı 17:00 sonrası bildirim almayacak.",
-                    "Tamam");
+                await _page.DisplayAlert("🌙 Sessiz Mod",
+                    "Mesaj iletildi. Alıcı 17:00 sonrası bildirim almayacak.", "Tamam");
 
             Messages.Add(newMsg);
 
@@ -236,12 +251,26 @@ public class ChatDetailViewModel : INotifyPropertyChanged
         if (!CanSend) return;
 
         bool confirm = await _page.DisplayAlert(
-            "🚨 Acil Mesaj Gönder",
-            $"Kalan hakkınız: {RemainingRights}/3\n\n"
-            + "Bu işlem 1 acil hakkınızı tüketecek. Devam edilsin mi?",
+            "🚨 Acil Mesaj",
+            $"Kalan hakkınız: {RemainingRights}/3\n\nBu işlem 1 acil hakkınızı tüketecek.",
             "Evet, Gönder", "Vazgeç");
 
         if (confirm) await SendAsync(true);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEMİZLE
+    // ════════════════════════════════════════════════════════════════
+    public async Task CleanupAsync()
+    {
+        _signalR.MessageReceived -= OnSignalRMessageReceived;
+
+        if (CourseId.HasValue)
+            await _signalR.LeaveCourseRoomAsync(CourseId.Value);
+        else if (OtherUserId.HasValue)
+            await _signalR.LeavePrivateRoomAsync(ApiService.Session.UserId, OtherUserId.Value);
+
+        await _signalR.StopAsync();
     }
 
     // ── INotifyPropertyChanged ────────────────────────────────────────

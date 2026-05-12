@@ -4,7 +4,7 @@ namespace KampusBag.MobileUI.Views.Chats;
 
 public partial class ChatDetailPage : ContentPage
 {
-    private readonly ChatDetailViewModel _vm;
+    private readonly ChatDetailViewModel? _vm;
 
     public ChatDetailPage(
         string chatName,
@@ -14,6 +14,13 @@ public partial class ChatDetailPage : ContentPage
         bool isReadOnly = false)
     {
         InitializeComponent();
+
+        // #7 GUARD: Her iki parametre de null ise VM oluşturma
+        if (courseId == null && otherUserId == null)
+        {
+            Console.WriteLine("[ChatDetailPage] courseId ve otherUserId her ikisi de null.");
+            return;
+        }
 
         _vm = new ChatDetailViewModel(this)
         {
@@ -28,25 +35,34 @@ public partial class ChatDetailPage : ContentPage
         ChatTitleLabel.Text = chatName;
     }
 
-    // Geriye uyumluluk (eski çağrılar için)
-    public ChatDetailPage(bool isPrivateWithTeacher)
-        : this("Sohbet", null, null, isPrivateWithTeacher) { }
-
-    // ════════════════════════════════════════════════════════════════
-    // SAYFA GÖRÜNDÜĞÜNDESignalR başlat + geçmiş yükle
-    // ════════════════════════════════════════════════════════════════
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _vm.InitializeAsync();   // SignalR + geçmiş
+
+        if (_vm == null)
+        {
+            await DisplayAlert("Hata", "Sohbet bilgisi eksik.", "Tamam");
+            await Navigation.PopAsync();
+            return;
+        }
+
+        try
+        {
+            await _vm.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            // #7: async void içinde yakalanmayan exception Android'de uygulamayı çökertir
+            Console.WriteLine($"[ChatDetailPage] InitializeAsync hata: {ex}");
+            await DisplayAlert("Bağlantı Hatası", $"Sohbet açılamadı:\n{ex.Message}", "Tamam");
+            await Navigation.PopAsync();
+        }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // SAYFA KAPANIRKEN → odadan ayrıl
-    // ════════════════════════════════════════════════════════════════
     protected override async void OnDisappearing()
     {
         base.OnDisappearing();
-        await _vm.CleanupAsync();      // oda ayrılma + bağlantı kapat
+        if (_vm != null)
+            await _vm.CleanupAsync();
     }
 }

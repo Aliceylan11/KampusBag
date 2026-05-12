@@ -1,233 +1,170 @@
-﻿using KampusBag.Core.DTOs;
-using KampusBag.Core.Entities;
+﻿using System.Text;
 using KampusBag.Core.Interfaces;
+using KampusBag.Core.Options;
+using KampusBag.Infrastructure.Persistence;
+using KampusBag.Infrastructure.Services;
 using KampusBag.WebAPI.Hubs;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KampusBag.WebAPI.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class MessagesController : ControllerBase
+public class Program
 {
-    private readonly IMessageService _messageService;
-    private readonly IUserService _userService;
-    private readonly IHubContext<ChatHub> _hub;           // YENİ
-
-    public MessagesController(
-        IMessageService messageService,
-        IUserService userService,
-        IHubContext<ChatHub> hub)
+    public static void Main(string[] args)
     {
-        _messageService = messageService;
-        _userService = userService;
-        _hub = hub;
-    }
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-    // ════════════════════════════════════════════════════════════════════
-    // POST api/messages/send
-    // ════════════════════════════════════════════════════════════════════
-    [HttpPost("send")]
-    public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto)
-    {
-        if (dto.SenderId == Guid.Empty)
-            return BadRequest(new { message = "SenderId zorunludur." });
+        var builder = WebApplication.CreateBuilder(args);
 
-        if (string.IsNullOrWhiteSpace(dto.Content))
-            return BadRequest(new { message = "Mesaj içeriği boş olamaz." });
-
-        if (dto.ReceiverId == null && dto.CourseId == null)
-            return BadRequest(new { message = "ReceiverId veya CourseId alanlarından biri zorunludur." });
-
-        try
+        // ── Temel Servisler ───────────────────────────────────────────
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(c =>
         {
-            // Resmi kanal yazma yetkisi kontrolü
-            if (dto.CourseId.HasValue && !dto.ReceiverId.HasValue)
+            // Swagger'da Bearer token test edebilmek için
+            c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                if (Request.Headers.TryGetValue("X-User-Role", out var roleHeader)
-                    && int.TryParse(roleHeader, out int roleValue))
+                Name = "Authorization",
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "bearer",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header
+            });
+            c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
                 {
-                    if (roleValue == 1) // Öğrenci → kontrol et (temsilci olabilir)
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                     {
-                        // Gerçek temsilci kontrolü JWT ile yapılacak; şimdilik geçiyor
-                    }
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
+                    },
+                    Array.Empty<string>()
                 }
+            });
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // #3 SECRETS — Options Pattern
+        // Hassas değerler user-secrets veya environment variable'dan gelir.
+        // appsettings.json'daki değerler boş bırakıldı.
+        //
+        // Kurulum (bir kez terminalde çalıştır):
+        //   cd KampusBag.WebAPI
+        //   dotnet user-secrets init
+        //   dotnet user-secrets set "Jwt:Key"                    "SUPER_SECRET_MIN_32_CHARS_HERE_!!"
+        //   dotnet user-secrets set "EmailSettings:SenderEmail"   "your@gmail.com"
+        //   dotnet user-secrets set "EmailSettings:SenderPassword" "gmail-app-password"
+        //   dotnet user-secrets set "Encryption:Key"             "KampusBag@2025!SecureAES256Key#1"
+        // ═══════════════════════════════════════════════════════════════
+        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+        builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailSettings"));
+        builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("Encryption"));
+
+        // ═══════════════════════════════════════════════════════════════
+        // #2 JWT Authentication
+        // ═══════════════════════════════════════════════════════════════
+        var jwtSection = builder.Configuration.GetSection("Jwt");
+        var jwtKey = jwtSection["Key"] ?? string.Empty;
+
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSection["Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = jwtSection["Audience"],
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtKey))
+                };
+
+                // SignalR WebSocket bağlantısı için token query string'den okunur
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = ctx =>
+                    {
+                        var token = ctx.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) &&
+                            ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            ctx.Token = token;
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+        builder.Services.AddAuthorization();
+
+        // ── CORS — MAUI uygulaması Android + iOS/Windows'tan bağlanır ──
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("MauiPolicy", policy =>
+                policy
+                    .WithOrigins(
+                        "http://localhost:5178",
+                        "http://10.0.2.2:5178",
+                        "https://localhost:7129")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials());   // SignalR için zorunlu
+        });
+
+        // ── SignalR (PascalCase JSON) ──────────────────────────────────
+        builder.Services.AddSignalR(o => o.EnableDetailedErrors = builder.Environment.IsDevelopment())
+            .AddJsonProtocol(o => o.PayloadSerializerOptions.PropertyNamingPolicy = null);
+
+        // ── Veritabanı ────────────────────────────────────────────────
+        builder.Services.AddDbContext<KampusBagDbContext>(options =>
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        // ── Repository ───────────────────────────────────────────────
+        builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+        // ═══════════════════════════════════════════════════════════════
+        // #4 UYGULAMA SERVİSLERİ — Application katmanından
+        // UserService → KampusBag.Application.Services (iş mantığı)
+        // MessageService → Infrastructure (karmaşık SQL sorgular)
+        // EmailService + TokenService → Infrastructure (dış servisler)
+        // ═══════════════════════════════════════════════════════════════
+        builder.Services.AddScoped<IUserService, KampusBag.Application.Services.UserService>();
+        builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddScoped<IMessageService, MessageService>();
+        builder.Services.AddScoped<ITokenService, TokenService>();
+
+        // ── Build & Migration ────────────────────────────────────────
+        var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            try
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<KampusBagDbContext>();
+                ctx.Database.Migrate();
             }
-
-            // ── 1. Mesajı DB'ye kaydet ────────────────────────────────
-            var result = await _messageService.SendMessageAsync(dto);
-
-            // ── 2. SignalR ile ilgili gruba broadcast et ───────────────
-            await BroadcastMessageAsync(result);
-
-            return Ok(new
+            catch (Exception ex)
             {
-                message = result.IsEmergency
-                    ? "🚨 Acil mesaj başarıyla gönderildi!"
-                    : result.IsSilent
-                        ? "Mesaj gönderildi. (Sessiz Mod)"
-                        : "Mesaj başarıyla gönderildi.",
-                data = result
-            });
+                Console.WriteLine("Migration hatası: " + ex.Message);
+            }
         }
-        catch (Exception ex) when (ex.Message.Contains("hakkınız kalmadı"))
+
+        // ── Middleware pipeline ───────────────────────────────────────
+        if (app.Environment.IsDevelopment())
         {
-            return UnprocessableEntity(new { message = ex.Message });
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
 
-    // ════════════════════════════════════════════════════════════════════
-    // SignalR Broadcast
-    // ════════════════════════════════════════════════════════════════════
-    private async Task BroadcastMessageAsync(MessageResponseDto result)
-    {
-        if (result.CourseId.HasValue)
-        {
-            // Ders odası → tüm oda üyelerine gönder
-            var group = $"course_{result.CourseId}";
-            await _hub.Clients.Group(group)
-                .SendAsync("ReceiveMessage", result);
-        }
-        else if (result.ReceiverId.HasValue)
-        {
-            // Birebir oda → gönderene de alıcıya da gönder
-            // (Gönderen farklı cihazda açık olabilir)
-            var room = ChatHub.GetPrivateRoom(result.SenderId, result.ReceiverId.Value);
-            await _hub.Clients.Group(room)
-                .SendAsync("ReceiveMessage", result);
-        }
-    }
+        app.UseCors("MauiPolicy");          // CORS, auth'dan önce gelmeli
+        app.UseAuthentication();            // #2 JWT
+        app.UseAuthorization();
 
-    // ════════════════════════════════════════════════════════════════════
-    // GET api/messages/history
-    // ════════════════════════════════════════════════════════════════════
-    [HttpGet("history")]
-    public async Task<IActionResult> GetHistory(
-        [FromQuery] Guid userId,
-        [FromQuery] Guid? otherUserId = null,
-        [FromQuery] Guid? courseId = null)
-    {
-        if (userId == Guid.Empty)
-            return BadRequest(new { message = "userId zorunludur." });
+        app.MapControllers();
+        app.MapHub<ChatHub>("/hubs/chat");  // SignalR hub
 
-        if (otherUserId == null && courseId == null)
-            return BadRequest(new { message = "otherUserId veya courseId gereklidir." });
-
-        try
-        {
-            var history = await _messageService.GetChatHistoryAsync(userId, otherUserId, courseId);
-            return Ok(new
-            {
-                message = "Mesaj geçmişi başarıyla getirildi.",
-                count = history.Count(),
-                data = history
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // GET api/messages/chats/{userId}
-    // ════════════════════════════════════════════════════════════════════
-    [HttpGet("chats/{userId:guid}")]
-    public async Task<IActionResult> GetChatList(Guid userId)
-    {
-        if (userId == Guid.Empty)
-            return BadRequest(new { message = "Geçerli bir userId giriniz." });
-
-        try
-        {
-            var chats = await _messageService.GetChatListAsync(userId);
-
-            var official = chats.Where(c => c.Type == ChatType.OfficialChannel);
-            var study = chats.Where(c => c.Type == ChatType.StudyRoom);
-            var privates = chats.Where(c => c.Type == ChatType.PrivateMessage);
-
-            return Ok(new
-            {
-                message = "Sohbet listesi başarıyla getirildi.",
-                officialChannels = official,
-                studyRooms = study,
-                privateMessages = privates
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // GET api/messages/rights/{userId}
-    // ════════════════════════════════════════════════════════════════════
-    [HttpGet("rights/{userId:guid}")]
-    public async Task<IActionResult> GetEmergencyRights(Guid userId)
-    {
-        try
-        {
-            int remaining = await _messageService.GetRemainingRightsAsync(userId);
-            return Ok(new { message = "Acil hak bilgisi getirildi.", remaining, maxRights = 3 });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // POST api/messages/emergency (geriye uyumluluk)
-    // ════════════════════════════════════════════════════════════════════
-    [HttpPost("emergency")]
-    public async Task<IActionResult> SendEmergency(
-        [FromQuery] Guid senderId,
-        [FromQuery] Guid courseId,
-        [FromBody] string content)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-            return BadRequest(new { message = "Mesaj içeriği boş olamaz." });
-
-        bool success = await _messageService.SendEmergencyMessageAsync(senderId, courseId, content);
-
-        if (!success)
-            return UnprocessableEntity(new
-            {
-                message = "Acil mesaj hakkınız kalmadı veya kayıt bulunamadı."
-            });
-
-        return Ok(new { message = "🚨 Acil mesaj başarıyla iletildi." });
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // PATCH api/messages/read
-    // ════════════════════════════════════════════════════════════════════
-    [HttpPatch("read")]
-    public async Task<IActionResult> MarkAsRead(
-        [FromQuery] Guid userId,
-        [FromQuery] Guid? senderId = null,
-        [FromQuery] Guid? courseId = null)
-    {
-        if (userId == Guid.Empty)
-            return BadRequest(new { message = "userId zorunludur." });
-
-        if (senderId == null && courseId == null)
-            return BadRequest(new { message = "senderId veya courseId gereklidir." });
-
-        try
-        {
-            int updated = await _messageService.MarkMessagesAsReadAsync(userId, senderId, courseId);
-            return Ok(new { message = $"{updated} mesaj okundu olarak işaretlendi.", count = updated });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        app.Run();
     }
 }
