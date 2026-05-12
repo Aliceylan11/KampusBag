@@ -35,7 +35,9 @@ public class ApiService
 
     public ApiService()
     {
-        _httpClient = new HttpClient { BaseAddress = new Uri(HubUrl), Timeout = TimeSpan.FromSeconds(20) };
+        _httpClient = new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
+        _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+
     }
 
     private void SetAuthHeader()
@@ -44,37 +46,52 @@ public class ApiService
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", Session.Token);
     }
-
     public async Task<(bool success, string message)> LoginAsync(string identifier, string password)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "users/login", new { Identifier = identifier, Password = password });
-            var content = await response.Content.ReadAsStringAsync();
 
-            if (response.IsSuccessStatusCode)
-            {
-                var parsed = JsonSerializer.Deserialize<LoginResponse>(content, _jsonOptions);
-                if (parsed?.User != null)
+            var content = await response.Content.ReadAsStringAsync();
+             
+            Console.WriteLine($"[Login] URL: {_httpClient.BaseAddress}users/login");
+            Console.WriteLine($"[Login] Status: {(int)response.StatusCode}");
+            Console.WriteLine($"[Login] Body: {content[..Math.Min(200, content.Length)]}");
+
+            if (!response.IsSuccessStatusCode)
+            { 
+                try
                 {
-                    Session.UserId = parsed.User.Id;
-                    Session.Email = parsed.User.Email;
-                    Session.FullName = parsed.User.FullName;
-                    Session.Role = parsed.User.Role;
-                    Session.IsLoggedIn = true;
-                    Session.Token = parsed.Token ?? string.Empty;
-                    SetAuthHeader();
-                    return (true, parsed.Message ?? "Giris basarili!");
+                    var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
+                    return (false, err?.Message ?? $"Hata {(int)response.StatusCode}");
+                }
+                catch
+                {
+                    return (false, $"Sunucu hatası: {(int)response.StatusCode}");
                 }
             }
 
-            var err = JsonSerializer.Deserialize<ErrorResponse>(content, _jsonOptions);
-            return (false, err?.Message ?? "Giris basarisiz.");
-        }
-        catch (Exception ex) { return (false, $"Baglanti hatasi: {ex.Message}"); }
-    }
+            var parsed = JsonSerializer.Deserialize<LoginResponse>(content, _jsonOptions);
+            if (parsed?.User != null)
+            {
+                Session.UserId = parsed.User.Id;
+                Session.Email = parsed.User.Email;
+                Session.FullName = parsed.User.FullName;
+                Session.Role = parsed.User.Role;
+                Session.IsLoggedIn = true;
+                Session.Token = parsed.Token ?? string.Empty;
+                SetAuthHeader();
+                return (true, parsed.Message ?? "Giriş başarılı!");
+            }
 
+            return (false, "Kullanıcı bilgisi alınamadı.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Bağlantı hatası: {ex.Message}");
+        }
+    }
     public async Task<bool> RegisterAsync(object dto)
     {
         try { return (await _httpClient.PostAsJsonAsync("users/register", dto)).IsSuccessStatusCode; }
