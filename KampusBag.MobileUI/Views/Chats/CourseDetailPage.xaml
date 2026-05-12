@@ -27,10 +27,10 @@
                     <Label Grid.Column="1"
                            Text="{Binding Course.Name}"
                            FontSize="18" FontAttributes="Bold"
-                           TextColor="White" VerticalOptions="Center"
+                           TextColor="Black" VerticalOptions="Center"
                            LineBreakMode="TailTruncation"/>
                     <Border Grid.Column="2"
-                            BackgroundColor="#FFFFFF30" Stroke="Transparent"
+                            BackgroundColor="#FFF" Stroke="Transparent"
                             WidthRequest="44" HeightRequest="44">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12"/>
@@ -45,20 +45,20 @@
 
                 <!-- Ders Kodu + Tip -->
                 <HorizontalStackLayout Grid.Row="1" Spacing="10">
-                    <Border BackgroundColor="#FFFFFF25" Stroke="Transparent" Padding="10,4">
+                    <Border BackgroundColor="#FFF" Stroke="Transparent" Padding="10,4">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="8"/>
                         </Border.StrokeShape>
                         <Label Text="{Binding Course.CourseCode}"
                                FontSize="13" FontAttributes="Bold"
-                               TextColor="White" CharacterSpacing="2"/>
+                               TextColor="Black" CharacterSpacing="2"/>
                     </Border>
-                    <Border BackgroundColor="#FFFFFF25" Stroke="Transparent" Padding="10,4">
+                    <Border BackgroundColor="#FFF" Stroke="Transparent" Padding="10,4">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="8"/>
                         </Border.StrokeShape>
                         <Label Text="{Binding CourseTypeLabel}"
-                               FontSize="12" TextColor="White"/>
+                               FontSize="12" TextColor="Black"/>
                     </Border>
                 </HorizontalStackLayout>
 

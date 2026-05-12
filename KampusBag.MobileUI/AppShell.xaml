@@ -12,47 +12,41 @@
 
     <Shell.Resources>
         <ResourceDictionary>
-            <!-- 1. Genel Shell Renkleri -->
             <Style TargetType="Shell" ApplyToDerivedTypes="True">
-                <Setter Property="Shell.BackgroundColor"     Value="#1B305E"/>
-                <Setter Property="Shell.ForegroundColor"     Value="White"/>
-                <Setter Property="Shell.TitleColor"          Value="White"/>
+                <Setter Property="Shell.BackgroundColor" Value="#1B305E"/>
+                <Setter Property="Shell.ForegroundColor" Value="White"/>
+                <Setter Property="Shell.TitleColor"      Value="White"/>
             </Style>
 
-            <!-- 2. Sidebar Yazılarını Beyaz Yapan Şablon (KRİTİK BÖLÜM) -->
             <DataTemplate x:Key="FlyoutMenuItemTemplate">
                 <Grid ColumnDefinitions="50, *" Padding="10" HeightRequest="50">
-                    <!-- İkon ve Metin Rengini Beyaz Yapar -->
-                    <Label Grid.Column="1" 
-                           Text="{Binding Title}" 
-                           TextColor="White" 
-                           FontSize="15" 
+                    <Label Grid.Column="1"
+                           Text="{Binding Title}"
+                           TextColor="White"
+                           FontSize="15"
                            FontAttributes="Bold"
-                           VerticalOptions="Center" 
+                           VerticalOptions="Center"
                            Margin="10,0,0,0"/>
                 </Grid>
             </DataTemplate>
         </ResourceDictionary>
     </Shell.Resources>
 
-    <!-- Sidebar'daki tüm öğelere bu beyaz şablonu uygula -->
     <Shell.ItemTemplate>
         <DataTemplate>
             <Grid ColumnDefinitions="Auto, *" Padding="20,12" HeightRequest="50">
-                <Label Grid.Column="1" 
-                       Text="{Binding Title}" 
-                       TextColor="White" 
-                       FontSize="15" 
+                <Label Grid.Column="1"
+                       Text="{Binding Title}"
+                       TextColor="White"
+                       FontSize="15"
                        FontAttributes="Bold"
-                       VerticalOptions="Center" 
+                       VerticalOptions="Center"
                        Margin="10,0,0,0"/>
             </Grid>
         </DataTemplate>
     </Shell.ItemTemplate>
 
-    <!-- ════════════════════════════════════════
-         FLYOUT HEADER — Beyaz Avatar ve Metinler
-    ════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════ FLYOUT HEADER ════════════════════════════════════════ -->
     <Shell.FlyoutHeader>
         <Grid BackgroundColor="{AppThemeBinding Light=#1B305E, Dark=#0D1B35}"
               Padding="24,52,24,28">
@@ -60,34 +54,28 @@
                 <Frame x:Name="FlyoutAvatarFrame"
                        WidthRequest="74" HeightRequest="74"
                        CornerRadius="37" Padding="0"
-                       BackgroundColor="White" 
+                       BackgroundColor="White"
                        BorderColor="#E5E7EB"
                        HorizontalOptions="Start"
                        Margin="0,0,0,16"
                        HasShadow="True">
                     <Label x:Name="FlyoutAvatarLabel"
                            Text="?"
-                           FontSize="32"
-                           FontAttributes="Bold"
-                           TextColor="#1B305E" 
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"/>
+                           FontSize="32" FontAttributes="Bold"
+                           TextColor="#1B305E"
+                           HorizontalOptions="Center" VerticalOptions="Center"/>
                 </Frame>
                 <Label x:Name="FlyoutFullNameLabel"
                        Text="Yükleniyor..."
-                       FontSize="18"
-                       FontAttributes="Bold"
+                       FontSize="18" FontAttributes="Bold"
                        TextColor="White"
                        Margin="0,0,0,8"/>
-                <Frame Padding="12,4"
-                       CornerRadius="12"
-                       BackgroundColor="#2A437E" 
-                       BorderColor="White"
+                <Frame Padding="12,4" CornerRadius="12"
+                       BackgroundColor="#2A437E" BorderColor="White"
                        HorizontalOptions="Start">
                     <Label x:Name="FlyoutRoleLabel"
                            Text="Kullanıcı"
-                           FontSize="11"
-                           FontAttributes="Bold"
+                           FontSize="11" FontAttributes="Bold"
                            TextColor="White"/>
                 </Frame>
                 <BoxView HeightRequest="1" Color="#FFF" Margin="0,36,0,0"/>
@@ -95,17 +83,13 @@
         </Grid>
     </Shell.FlyoutHeader>
 
-    <!-- ════════════════════════════════════════
-         FLYOUT FOOTER — Güvenli Çıkış Butonu
-    ════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════ FLYOUT FOOTER ════════════════════════════════════════ -->
     <Shell.FlyoutFooter>
         <Grid BackgroundColor="{AppThemeBinding Light=#0F2040, Dark=#060D1A}" Padding="20,16">
             <Button Text="🚪  Güvenli Çıkış"
                     x:Name="FlyoutLogoutButton"
-                    BackgroundColor="Transparent"
-                    TextColor="#F87171"
-                    FontAttributes="Bold"
-                    FontSize="14"
+                    BackgroundColor="Transparent" TextColor="#F87171"
+                    FontAttributes="Bold" FontSize="14"
                     HorizontalOptions="Start"
                     Clicked="OnFlyoutLogoutClicked"/>
         </Grid>
@@ -114,34 +98,31 @@
     <!-- ════════════════════════════════════════
          MENÜ ÖĞELERİ
     ════════════════════════════════════════ -->
+
+    <!-- Sohbet listesi (özel mesajlar dahil) -->
     <FlyoutItem Title="Ana Sayfa">
         <ShellContent Route="chatlist" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
     </FlyoutItem>
 
-    <FlyoutItem Title="Resmi Kanallar">
-        <ShellContent Route="officialchannels" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
+    <!-- ★★★ YENİ EKLENDİ ★★★
+         Derslerim — kullanıcının kayıtlı olduğu dersleri listeler.
+         Bir derse tıklayınca CourseDetailPage açılır → üye listesi + temsilci atama burada. -->
+    <FlyoutItem Title="📚  Derslerim">
+        <ShellContent Route="mycourses" ContentTemplate="{DataTemplate chats:CourseListPage}"/>
     </FlyoutItem>
 
-    <FlyoutItem Title="Çalışma Odaları">
-        <ShellContent Route="studyrooms" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
-    </FlyoutItem>
-    
-    <!-- Sadece Hoca (2) ve Admin (4) görebilir -->
+    <!-- Hoca/Admin: Resmi Ders Kanalı oluştur -->
     <FlyoutItem Title="Ders Odası Oluştur"
-            IsVisible="{Binding IsTeacherOrAdmin}">
+                IsVisible="{Binding IsTeacherOrAdmin}">
         <ShellContent ContentTemplate="{DataTemplate chats:CreateCoursePage}"/>
     </FlyoutItem>
 
-    <!-- Sadece Temsilci (3) görebilir -->
+    <!-- Temsilci: Çalışma Odası oluştur -->
     <FlyoutItem Title="Çalışma Odası Oluştur"
-            IsVisible="{Binding IsRepresentative}">
+                IsVisible="{Binding IsRepresentative}">
         <ShellContent ContentTemplate="{DataTemplate chats:CreateCoursePage}"/>
     </FlyoutItem>
-    
-    <FlyoutItem Title="Özel Mesajlar">
-        <ShellContent Route="privatemessages" ContentTemplate="{DataTemplate chats:ChatListPage}"/>
-    </FlyoutItem>
-   
+
     <FlyoutItem Title="Profilim">
         <ShellContent ContentTemplate="{DataTemplate profile:ProfilePage}"/>
     </FlyoutItem>

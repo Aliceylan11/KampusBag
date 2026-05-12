@@ -1,5 +1,4 @@
 using KampusBag.MobileUI.Models;
-using KampusBag.MobileUI.Services;
 using KampusBag.MobileUI.ViewModels;
 
 namespace KampusBag.MobileUI.Views.Chats;
@@ -20,13 +19,21 @@ public partial class CourseListPage : ContentPage
             await _vm.LoadCoursesAsync();
     }
 
-    // ── Ders kartına tıklama → CourseDetailPage ───────────────────────
-    // Akademisyen hem üyeleri yönetir hem sohbete geçer.
-    // Öğrenci de üye listesini görür, sohbete oradan geçer.
+    // ── Ders kartına tıklama ──────────────────────────────────────────
+    // ★★★ KRİTİK: Bu satır CourseDetailPage'e gitmeli (üye listesi sayfası).
+    //          Eğer ChatDetailPage'e gidiyorsa, üyeler ekranı hiç açılmaz.
     private async void OnCourseTapped(object sender, TappedEventArgs e)
     {
         if (e.Parameter is not CourseModel course) return;
-        await Navigation.PushAsync(new CourseDetailPage(course));  // ← bu satır
+
+        try
+        {
+            await Navigation.PushAsync(new CourseDetailPage(course));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Hata", $"Ders detayı açılamadı: {ex.Message}", "Tamam");
+        }
     }
 
     // ── Toolbar butonları ─────────────────────────────────────────────
