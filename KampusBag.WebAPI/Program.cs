@@ -1,4 +1,4 @@
-using System.Text;
+using KampusBag.Application.Services;
 using KampusBag.Core.Interfaces;
 using KampusBag.Core.Options;
 using KampusBag.Infrastructure.Persistence;
@@ -7,6 +7,7 @@ using KampusBag.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace KampusBag.WebAPI;
 
@@ -15,57 +16,20 @@ public class Program
     public static void Main(string[] args)
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
         var builder = WebApplication.CreateBuilder(args);
 
-        // ── Temel Servisler ───────────────────────────────────────────
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
-        {
-            // Swagger'da Bearer token test edebilmek için
-            c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Name = "Authorization",
-                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-                Scheme = "bearer",
-                In = Microsoft.OpenApi.Models.ParameterLocation.Header
-            });
-            c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-            {
-                {
-                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                    {
-                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                            { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()
-                }
-            });
-        });
+        builder.Services.AddSwaggerGen();
 
-        // ═══════════════════════════════════════════════════════════════
-        // #3 SECRETS — Options Pattern
-        // Hassas değerler user-secrets veya environment variable'dan gelir.
-        // appsettings.json'daki değerler boş bırakıldı.
-        //
-        // Kurulum (bir kez terminalde çalıştır):
-        //   cd KampusBag.WebAPI
-        //   dotnet user-secrets init
-        //   dotnet user-secrets set "Jwt:Key"                    "SUPER_SECRET_MIN_32_CHARS_HERE_!!"
-        //   dotnet user-secrets set "EmailSettings:SenderEmail"   "your@gmail.com"
-        //   dotnet user-secrets set "EmailSettings:SenderPassword" "gmail-app-password"
-        //   dotnet user-secrets set "Encryption:Key"             "KampusBag@2025!SecureAES256Key#1"
-        // ═══════════════════════════════════════════════════════════════
+        // Options
         builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
         builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.Configure<EncryptionOptions>(builder.Configuration.GetSection("Encryption"));
 
-        // ═══════════════════════════════════════════════════════════════
-        // #2 JWT Authentication
-        // ═══════════════════════════════════════════════════════════════
-        var jwtSection = builder.Configuration.GetSection("Jwt");
-        var jwtKey = jwtSection["Key"] ?? string.Empty;
+        // JWT
+        var jwtKey = builder.Configuration["Jwt:Key"]
+            ?? throw new Exception("Jwt:Key eksik. dotnet user-secrets set 'Jwt:Key' '...' çalıştırın.");
 
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -73,23 +37,20 @@ public class Program
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
-                    ValidIssuer = jwtSection["Issuer"],
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidateAudience = true,
-                    ValidAudience = jwtSection["Audience"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                    ClockSkew = TimeSpan.Zero
                 };
-
-                // SignalR WebSocket bağlantısı için token query string'den okunur
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = ctx =>
                     {
-                        var token = ctx.Request.Query["access_token"];
-                        if (!string.IsNullOrEmpty(token) &&
-                            ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        var token = ctx.Request.Query["access_token"].ToString();
+                        if (!string.IsNullOrEmpty(token) && ctx.Request.Path.StartsWithSegments("/hubs"))
                             ctx.Token = token;
                         return Task.CompletedTask;
                     }
@@ -98,73 +59,52 @@ public class Program
 
         builder.Services.AddAuthorization();
 
-        // ── CORS — MAUI uygulaması Android + iOS/Windows'tan bağlanır ──
+        // CORS — Ngrok + fiziksel cihaz desteği
+        // FIX: SetIsOriginAllowedToAllOrigins() yok, doğru metot SetIsOriginAllowed(_ => true)
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("MauiPolicy", policy =>
+            {
                 policy
-                    .WithOrigins(
-                        "http://localhost:5178",
-                        "http://10.0.2.2:5178",
-                        "https://localhost:7129")
+                    .SetIsOriginAllowed(_ => true)  // tüm origin'lere izin ver
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials());   // SignalR için zorunlu
+                    .AllowCredentials();
+            });
         });
 
-        // ── SignalR (PascalCase JSON) ──────────────────────────────────
-        builder.Services.AddSignalR(o => o.EnableDetailedErrors = builder.Environment.IsDevelopment())
-            .AddJsonProtocol(o => o.PayloadSerializerOptions.PropertyNamingPolicy = null);
+        // SignalR
+        builder.Services.AddSignalR(opt => opt.EnableDetailedErrors = builder.Environment.IsDevelopment())
+            .AddJsonProtocol(opt => opt.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
-        // ── Veritabanı ────────────────────────────────────────────────
-        builder.Services.AddDbContext<KampusBagDbContext>(options =>
-            options.UseNpgsql(
-                builder.Configuration.GetConnectionString("DefaultConnection")));
+        // DB
+        builder.Services.AddDbContext<KampusBagDbContext>(opt =>
+            opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-        // ── Repository ───────────────────────────────────────────────
+        // DI
         builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-
-        // ═══════════════════════════════════════════════════════════════
-        // #4 UYGULAMA SERVİSLERİ — Application katmanından
-        // UserService → KampusBag.Application.Services (iş mantığı)
-        // MessageService → Infrastructure (karmaşık SQL sorgular)
-        // EmailService + TokenService → Infrastructure (dış servisler)
-        // ═══════════════════════════════════════════════════════════════
-        builder.Services.AddScoped<IUserService, KampusBag.Application.Services.UserService>();
+        builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddScoped<IMessageService, MessageService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
+        builder.Services.AddScoped<INotificationService, FirebaseNotificationService>();
 
-        // ── Build & Migration ────────────────────────────────────────
         var app = builder.Build();
 
         using (var scope = app.Services.CreateScope())
         {
-            try
-            {
-                var ctx = scope.ServiceProvider.GetRequiredService<KampusBagDbContext>();
-                ctx.Database.Migrate();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Migration hatası: " + ex.Message);
-            }
+            try { scope.ServiceProvider.GetRequiredService<KampusBagDbContext>().Database.Migrate(); }
+            catch (Exception ex) { Console.WriteLine($"[Migration] {ex.Message}"); }
         }
 
-        // ── Middleware pipeline ───────────────────────────────────────
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+        if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 
-        app.UseCors("MauiPolicy");          // CORS, auth'dan önce gelmeli
-        app.UseAuthentication();            // #2 JWT
+        //app.UseHttpsRedirection();
+        app.UseCors("MauiPolicy");
+        app.UseAuthentication();
         app.UseAuthorization();
-
         app.MapControllers();
-        app.MapHub<ChatHub>("/hubs/chat");  // SignalR hub
-
+        app.MapHub<ChatHub>("/hubs/chat");
         app.Run();
     }
 }

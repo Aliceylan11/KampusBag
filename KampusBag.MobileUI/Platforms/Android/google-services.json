@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "469315309679",
+    "project_id": "kampusbag",
+    "storage_bucket": "kampusbag.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:469315309679:android:0275f02334fd107f0d3d9a",
+        "android_client_info": {
+          "package_name": "com.aliceylan.kampusbag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2JzDDKou3m74H923r7YiXWg-AwXebUIg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

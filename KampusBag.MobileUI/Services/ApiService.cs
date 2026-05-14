@@ -31,6 +31,17 @@ public class ApiService
             UserId = Guid.Empty; Email = string.Empty; FullName = string.Empty;
             Role = 0; IsLoggedIn = false; Token = string.Empty;
         }
+        public static async Task SaveSessionAsync(string token, string userId, string fullName, int role)
+        {
+            await SecureStorage.SetAsync("token", token);
+            await SecureStorage.SetAsync("userId", userId);
+            await SecureStorage.SetAsync("fullName", fullName);
+            await SecureStorage.SetAsync("role", role.ToString());
+
+             
+            Token = token; IsLoggedIn = true; UserId = Guid.Parse(userId); FullName = fullName; Role = role;
+
+        }
     }
 
     public ApiService()
@@ -235,7 +246,40 @@ public class ApiService
         }
         catch { }
     }
+    /// <summary>
+    /// FCM cihaz token'ını backend'e kaydeder/günceller.
+    /// Login sonrası ve token yenilendiğinde çağrılır.
+    /// </summary>
+    public async Task<bool> SaveDeviceTokenAsync(string token, string platform)
+    {
+        try
+        {
+            SetAuthHeader();
 
+            var response = await _httpClient.PostAsJsonAsync(
+                "users/device-token",
+                new
+                {
+                    UserId = Session.UserId,
+                    Token = token,
+                    Platform = platform
+                });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[ApiService] DeviceToken kayıt başarısız: {body}");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ApiService] DeviceToken hata: {ex.Message}");
+            return false;
+        }
+    }
     public async Task<CourseListResult> GetMyCoursesAsync(Guid userId)
     {
         try
