@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "KampusBag.MobileUI\\KampusBag.MobileUI.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "KampusBag.WebAPI\\KampusBag.WebAPI.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
